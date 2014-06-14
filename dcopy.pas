@@ -90,10 +90,12 @@ begin
 
 end;
 
-procedure dcopy.DoRun;
+//------------------------------
+
+procedure copiarchivoconhash(de,a:string);
+
 var
-  ErrorMsg: String;
-  Origen,Destino: String;
+
   TotalBytesRead, BytesRead : Int64;
   Buffer : array [0..chunksize] of AnsiChar;  // Tamaño de cada "chunk"
   FileStream,ArchivoHashes, ArchivoDestino  : TFileStream;
@@ -102,6 +104,91 @@ var
   //MaxArray : LongInt;
   i , TotalBytesCopied : LongInt;
   timeblockstart,timeblockend :TDateTime   ;
+
+begin
+
+//leer hashes de archivo hashes a un array
+//TODO Comprobar existencia archivo hashes, y si no llamar a copiararchivocompleto
+ArchivoHashes:= TFileStream.Create(de+'.hash',fmOpenReadWrite);
+ArchivoHashes.Position := 0;  // Ensure you are at the start of the file
+TotalBytesRead:=0;
+SetLength(HashArray,4095);
+//writeln('Lenght Array:',Length(HashArray));
+i:=0;
+//writeln(Origen+'.hash','-',ArchivoHashes.Size) ;
+while ArchivoHashes.Size > TotalBytesRead do
+      begin
+           BytesRead := ArchivoHashes.Read(HashArray[i] ,32);
+           //writeln('Posición archivo hashes:',ArchivoHashes.Position);
+           //write(i,'-',HashArray[i]);
+           inc(i);
+           inc(TotalBytesRead, BytesRead);
+           //writeln('i:',i,' Total:',TotalBytesRead,' BytesRead:',BytesRead,' Tamaño:',ArchivoHashes.Size);
+           if (i=(Length(HashArray)-1)) then SetLength(HashArray,(Length(HashArray)+4095));
+           sleep(0);
+      end;
+SetLength(HashArray,i+1);
+//writeln('Lenght Array:',Length(HashArray));
+//MaxArray:=i;
+//writeln('Archivo de Hashes leído...imprimimos,por ejemplo 1,2 y último');
+//writeln(HashArray[0],'-',HashArray[1],'-',HashArray[i-1]);
+i:=0;
+writeln('Comenzando a procesar el archivo original');
+FileStream:= TFileStream.Create (de,fmOpenRead);
+FileStream.Position := 0;
+TotalBytesRead:=0;
+TotalBytesCopied:=0;
+ArchivoDestino:= TFileStream.Create(a,fmOpenReadWrite); //Añadir no abrir hasta que haya que grabar
+while FileStream.Size > TotalBytesRead do  // While the amount of data read is less than or equal to the size of the stream do
+begin
+  BytesRead := FileStream.Read(Buffer,sizeof(Buffer));  // Read in 16384 of data
+  inc(TotalBytesRead, BytesRead);
+  //write('Bytes leídos en esta tacada:',BytesRead,'   ');
+  //write('Bytes leídos:',TotalBytesRead);
+  // Do something with Buffer data
+  //write(Buffer);
+  //HashBloque:=MD4Print(MD4String(Buffer[0]));
+  HashBloque:=MD4Print(MD4Buffer(Buffer,chunksize+1));
+  //writeln;
+  //writeln('Tamaño:',FileStream.Size,'- Leído:',BytesRead,'- Total leído:',TotalBytesRead);
+  //writeln('Procesando bloque:',i);
+  //writeln(HashBloque,'-',HashArray[i]);
+  //writeln(Buffer);
+  //readln;
+  if HashBloque<>HashArray[i] then
+  begin
+  writeln('-----------Bloque distinto:',i);
+  //writeln('Posición:',FileStream.Position);
+  //writeln('Vamos a escribir en ',(FileStream.Position-BytesRead));
+  if FileStream.Position<chunksize then ArchivoDestino.Position:=0
+  else ArchivoDestino.Position:=(FileStream.Position-BytesRead);
+  ArchivoDestino.Write(Buffer,BytesRead);
+  inc(TotalBytesCopied,BytesRead);
+  //MODIFICAR ARCHIVO HASHES
+  //writeln('Posición archivohashes antes:',ArchivoHashes.Position);
+  ArchivoHashes.Position:=(i*32);
+  //writeln('Posición archivohashes después:',ArchivoHashes.Position);
+  ArchivoHashes.Write(HashBloque[1],32);
+  Sleep(0);
+  end;
+inc(i);
+Sleep(0);
+end;
+writeln('Terminamos, total copiado:',round(TotalBytesCopied/1024/1024),' MB');
+ArchivoDestino.Size:=FileStream.Size;
+// TODO Cambiar tamaño archivo hashes
+FileStream.Free;
+ArchivoDestino.Free;
+ArchivoHashes.Free;
+SetLength(HashArray,0);
+end;
+
+//------------------------------
+procedure dcopy.DoRun;
+var
+  ErrorMsg: String;
+  Origen,Destino: String;
+
 begin
   // quick check parameters
   ErrorMsg:=CheckOptions('h','help');
@@ -127,80 +214,8 @@ begin
    writeln('Destino:',Destino);
    If FileExists(Destino) then //Comprobar si el tamaño es el mismo ¿y la fecha?
      begin
-     //leer hashes de archivo hashes a un array
-     writeln('Destino existe,leyendo archivo de hashes');
-     //TODO Comprobar existencia archivo hashes, y si no llamar a copiararchivocompleto
-     ArchivoHashes:= TFileStream.Create(Origen+'.hash',fmOpenReadWrite);
-     ArchivoHashes.Position := 0;  // Ensure you are at the start of the file
-     TotalBytesRead:=0;
-     SetLength(HashArray,4095);
-     //writeln('Lenght Array:',Length(HashArray));
-     i:=0;
-     //writeln(Origen+'.hash','-',ArchivoHashes.Size) ;
-     while ArchivoHashes.Size > TotalBytesRead do
-           begin
-                BytesRead := ArchivoHashes.Read(HashArray[i] ,32);
-                //writeln('Posición archivo hashes:',ArchivoHashes.Position);
-                //write(i,'-',HashArray[i]);
-                inc(i);
-                inc(TotalBytesRead, BytesRead);
-                //writeln('i:',i,' Total:',TotalBytesRead,' BytesRead:',BytesRead,' Tamaño:',ArchivoHashes.Size);
-                if (i=(Length(HashArray)-1)) then SetLength(HashArray,(Length(HashArray)+4095));
-                sleep(0);
-           end;
-     SetLength(HashArray,i+1);
-     //writeln('Lenght Array:',Length(HashArray));
-     //MaxArray:=i;
-     //writeln('Archivo de Hashes leído...imprimimos,por ejemplo 1,2 y último');
-     //writeln(HashArray[0],'-',HashArray[1],'-',HashArray[i-1]);
-     i:=0;
-     writeln('Comenzando a procesar el archivo original');
-     FileStream:= TFileStream.Create (Origen,fmOpenRead);
-     FileStream.Position := 0;
-     TotalBytesRead:=0;
-     TotalBytesCopied:=0;
-     ArchivoDestino:= TFileStream.Create(Destino,fmOpenReadWrite); //Añadir no abrir hasta que haya que grabar
-     while FileStream.Size > TotalBytesRead do  // While the amount of data read is less than or equal to the size of the stream do
-     begin
-       BytesRead := FileStream.Read(Buffer,sizeof(Buffer));  // Read in 16384 of data
-       inc(TotalBytesRead, BytesRead);
-       //write('Bytes leídos en esta tacada:',BytesRead,'   ');
-       //write('Bytes leídos:',TotalBytesRead);
-       // Do something with Buffer data
-       //write(Buffer);
-       //HashBloque:=MD4Print(MD4String(Buffer[0]));
-       HashBloque:=MD4Print(MD4Buffer(Buffer,chunksize+1));
-       //writeln;
-       //writeln('Tamaño:',FileStream.Size,'- Leído:',BytesRead,'- Total leído:',TotalBytesRead);
-       //writeln('Procesando bloque:',i);
-       //writeln(HashBloque,'-',HashArray[i]);
-       //writeln(Buffer);
-       //readln;
-       if HashBloque<>HashArray[i] then
-       begin
-       writeln('-----------Bloque distinto:',i);
-       //writeln('Posición:',FileStream.Position);
-       //writeln('Vamos a escribir en ',(FileStream.Position-BytesRead));
-       if FileStream.Position<chunksize then ArchivoDestino.Position:=0
-       else ArchivoDestino.Position:=(FileStream.Position-BytesRead);
-       ArchivoDestino.Write(Buffer,BytesRead);
-       inc(TotalBytesCopied,BytesRead);
-       //MODIFICAR ARCHIVO HASHES
-       //writeln('Posición archivohashes antes:',ArchivoHashes.Position);
-       ArchivoHashes.Position:=(i*32);
-       //writeln('Posición archivohashes después:',ArchivoHashes.Position);
-       ArchivoHashes.Write(HashBloque[1],32);
-       Sleep(0);
-       end;
-     inc(i);
-     Sleep(0);
-     end;
-     writeln('Terminamos, total copiado:',round(TotalBytesCopied/1024/1024),' MB');
-     ArchivoDestino.Size:=FileStream.Size;
-     // TODO Cambiar tamaño archivo hashes
-     FileStream.Free;
-     ArchivoDestino.Free;
-     ArchivoHashes.Free;
+     writeln('Destino existe, procesamos archivo de hashes');
+     copiarchivoconhash(Origen,Destino);
      end
      else
      begin
@@ -211,7 +226,7 @@ begin
   //FileStream:= TFileStream.Create (Origen,fmShareDenyNone);
   //FileStream.Free;
   //Terminate;
-  SetLength(HashArray,0);
+
   writeln('fin');
   Terminate;
 //finally
