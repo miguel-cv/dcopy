@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <Version Value="9"/>
+    <BuildModes Active="Default"/>
+    <Units Count="1">
+      <Unit0>
+        <Filename Value="dcopy.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="dcopya"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="0"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="53"/>
+        <CursorPos X="146" Y="76"/>
+        <UsageCount Value="29"/>
+        <Loaded Value="True"/>
+      </Unit0>
+    </Units>
+    <General>
+      <ActiveWindowIndexAtStart Value="0"/>
+    </General>
+    <JumpHistory Count="12" HistoryIndex="11">
+      <Position1>
+        <Filename Value="dcopy.pas"/>
+        <Caret Line="49" Column="18" TopLine="28"/>
+      </Position1>
+      <Position2>
+        <Filename Value="dcopy.pas"/>
+        <Caret Line="65" Column="75" TopLine="28"/>
+      </Position2>
+      <Position3>
+        <Filename Value="dcopy.pas"/>
+        <Caret Line="34" Column="45" TopLine="13"/>
+      </Position3>
+      <Position4>
+        <Filename Value="dcopy.pas"/>
+        <Caret Line="66" Column="56" TopLine="47"/>
+      </Position4>
+      <Position5>
+        <Filename Value="dcopy.pas"/>
+        <Caret Line="73" Column="199" TopLine="52"/>
+      </Position5>
+      <Position6>
+        <Filename Value="dcopy.pas"/>
+        <Caret Line="31" Column="73" TopLine="24"/>
+      </Position6>
+      <Position7>
+        <Filename Value="dcopy.pas"/>
+        <Caret Line="73" Column="48" TopLine="51"/>
+      </Position7>
+      <Position8>
+        <Filename Value="dcopy.pas"/>
+        <Caret Line="74" Column="20" TopLine="52"/>
+      </Position8>
+      <Position9>
+        <Filename Value="dcopy.pas"/>
+        <Caret Line="32" Column="5" TopLine="24"/>
+      </Position9>
+      <Position10>
+        <Filename Value="dcopy.pas"/>
+        <Caret Line="75" Column="73" TopLine="54"/>
+      </Position10>
+      <Position11>
+        <Filename Value="dcopy.pas"/>
+        <Caret Line="74" Column="49" TopLine="53"/>
+      </Position11>
+      <Position12>
+        <Filename Value="dcopy.pas"/>
+        <Caret Line="76" Column="33" TopLine="53"/>
+      </Position12>
+    </JumpHistory>
+  </ProjectSession>
+  <Debugging>
+    <Watches Count="1">
+      <Item1>
+        <Expression Value="writeln"/>
+      </Item1>
+    </Watches>
+  </Debugging>
+  <EditorMacros Count="0"/>
+</CONFIG>
