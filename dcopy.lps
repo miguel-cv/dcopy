@@ -11,16 +11,16 @@
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="0"/>
         <WindowIndex Value="0"/>
-        <TopLine Value="166"/>
-        <CursorPos X="26" Y="183"/>
-        <UsageCount Value="30"/>
+        <TopLine Value="222"/>
+        <CursorPos X="33" Y="256"/>
+        <UsageCount Value="32"/>
         <Loaded Value="True"/>
       </Unit0>
     </Units>
     <General>
       <ActiveWindowIndexAtStart Value="0"/>
     </General>
-    <JumpHistory Count="18" HistoryIndex="17">
+    <JumpHistory Count="19" HistoryIndex="18">
       <Position1>
         <Filename Value="dcopy.pas"/>
         <Caret Line="49" Column="18" TopLine="28"/>
@@ -71,28 +71,32 @@
       </Position12>
       <Position13>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="99" Column="4" TopLine="156"/>
+        <Caret Line="106" Column="46" TopLine="84"/>
       </Position13>
       <Position14>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="106" Column="46" TopLine="84"/>
+        <Caret Line="183" Column="5" TopLine="165"/>
       </Position14>
       <Position15>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="112" Column="42" TopLine="189"/>
+        <Caret Line="228" Column="26" TopLine="194"/>
       </Position15>
       <Position16>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="183" Column="5" TopLine="165"/>
+        <Caret Line="141" Column="38" TopLine="114"/>
       </Position16>
       <Position17>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="228" Column="26" TopLine="194"/>
+        <Caret Line="21" Column="85" TopLine="1"/>
       </Position17>
       <Position18>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="141" Column="38" TopLine="114"/>
+        <Caret Line="219" Column="5" TopLine="190"/>
       </Position18>
+      <Position19>
+        <Filename Value="dcopy.pas"/>
+        <Caret Line="28" Column="45" TopLine="6"/>
+      </Position19>
     </JumpHistory>
   </ProjectSession>
   <Debugging>

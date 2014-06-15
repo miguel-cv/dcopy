@@ -184,6 +184,9 @@ SetLength(HashArray,0);
 end;
 
 //------------------------------
+// PROGRAMA PRINCIPAL
+//------------------------------
+
 procedure dcopy.DoRun;
 var
   ErrorMsg: String;
@@ -207,6 +210,14 @@ begin
 
   { add your program here }
   // Añadir try...finally
+   if (ParamStr(1) = '') or (ParamStr(2) = '' ) then
+   begin
+   writeln('We need two parameters....');
+   WriteHelp;
+   Terminate;
+   exit;
+
+   end;
    Origen:=ParamStr(1);
    Destino:=ParamStr(2);
    //Añadir comprobación directorio destino, y abrir destino+nombre original.
@@ -222,18 +233,10 @@ begin
      writeln('Destino no existe, lo copiamos');
      copiarchivocompleto(Origen,Destino);
      end;
-//try
-  //FileStream:= TFileStream.Create (Origen,fmShareDenyNone);
-  //FileStream.Free;
-  //Terminate;
-
   writeln('fin');
   Terminate;
-//finally
 // stop program loop
 end;
-
-
 
 constructor dcopy.Create(TheOwner: TComponent);
 begin
@@ -249,6 +252,7 @@ end;
 procedure dcopy.WriteHelp;
 begin
   { add your help code here }
+  writeln('Usage: ',Exename,' source destination');
   writeln('Usage: ',ExeName,' -h');
 end;
 
