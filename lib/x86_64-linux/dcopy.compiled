@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
   <Compiler Value="/usr/lib/codetyphon/fpc/bin/x86_64-linux/fpc" Date="1397077312"/>
-  <Params Value=" -MObjFPC -Scghi -O1 -g -gl -vewnhi -Fu/home/miguel/trabajando/dcopy3/ -FU/home/miguel/trabajando/dcopy3/lib/x86_64-linux/ -l dcopy.pas"/>
+  <Params Value=" -MObjFPC -Scghi -O1 -g -gl -vewnhi -Fi/home/miguel/trabajando/dcopy3/lib/x86_64-linux -Fu/home/miguel/trabajando/dcopy3/ -FU/home/miguel/trabajando/dcopy3/lib/x86_64-linux/ -l dcopy.pas"/>
 </CONFIG>
