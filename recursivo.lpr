@@ -7,8 +7,10 @@ var
   rec : TSearchRec;
 begin
   sPath := IncludeTrailingPathDelimiter(Path);
+
   //if FindFirst(sPath + AllFilesMask, faAnyFile or faSymLink, rec) = 0 then
-  if FindFirst(sPath + AllFilesMask, faAnyFile or faSymLink, rec) = 0 then
+  //if FindFirst(sPath + AllFilesMask, faAnyFile or faSymLink, rec) = 0 then
+  if FindFirst(sPath + '*', faAnyFile or faSymLink, rec) = 0 then
   begin
     repeat
       // TSearchRec.Attr contain basic attributes (directory, hidden,
@@ -24,8 +26,10 @@ begin
         if (rec.Name <> '.') and (rec.Name <> '..') then
            begin
              if ((rec.Attr and faSymLink) <> faSymLink) then
+           //     begin
           ScanFolder(sPath + rec.Name)
-          //writeln('Directorio:',sPath+rec.Name);
+          //writeln('Directorio:',sPath+rec.Name) ;
+          //      end
           else
           //writeln('Symlink:',rec.Name);
            end;

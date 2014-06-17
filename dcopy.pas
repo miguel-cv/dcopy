@@ -6,8 +6,7 @@ uses
   {$IFDEF UNIX}{$IFDEF UseCThreads}
   cthreads,
   {$ENDIF}{$ENDIF}
-  Classes, SysUtils, CustApp , md5 ,dateUtils
-  { you can add units after this };
+  Classes, SysUtils, CustApp , md5 ,dateUtils ;
 
 var
 
@@ -147,18 +146,10 @@ while FileStream.Size > TotalBytesRead do  // While the amount of data read is l
 begin
   BytesRead := FileStream.Read(Buffer,sizeof(Buffer));  // Read in lenght "chunk" of data
   inc(TotalBytesRead, BytesRead);
-  //write('Bytes leídos en esta tacada:',BytesRead,'   ');
-  //write('Bytes leídos:',TotalBytesRead);
-  // Do something with Buffer data
-  //write(Buffer);
-  //HashBloque:=MD4Print(MD4String(Buffer[0]));
   HashBloque:=MD4Print(MD4Buffer(Buffer,chunksize+1));
-  //writeln;
-  //writeln('Tamaño:',FileStream.Size,'- Leído:',BytesRead,'- Total leído:',TotalBytesRead);
   //writeln('Procesando bloque:',i);
   //writeln(HashBloque,'-',HashArray[i]);
   //writeln(Buffer);
-  //readln;
   if HashBloque<>HashArray[i] then
   begin
   write(StringOfChar(#8,80));
@@ -169,7 +160,6 @@ begin
   else ArchivoDestino.Position:=(FileStream.Position-BytesRead);
   ArchivoDestino.Write(Buffer,BytesRead);
   inc(TotalBytesCopied,BytesRead);
-  //MODIFICAR ARCHIVO HASHES
   //writeln('Posición archivohashes antes:',ArchivoHashes.Position);
   ArchivoHashes.Position:=(i*32);
   //writeln('Posición archivohashes después:',ArchivoHashes.Position);
@@ -220,6 +210,7 @@ procedure dcopy.DoRun;
 var
   ErrorMsg: String;
   Origen,Destino: String;
+  i : Integer;
 
 begin
   // quick check parameters
@@ -250,7 +241,7 @@ begin
 
     { TODO : Añadir parámetros, chunk size, mir...}
   { add your program here }
-  // Añadir try...finally
+   { TODO : Añadir try...finally }
 
   if (ParamStr(paramcount-1) = '') or (ParamStr(paramcount) = '' ) then
    begin
@@ -258,12 +249,13 @@ begin
    WriteHelp;
    Terminate;
    exit;
-
    end;
-   {TODO : Extraer path y nombre por separado}
+
+
+   { TODO : Extraer path y nombre por separado}
    Origen:=ParamStr(paramcount-1);
    Destino:=ParamStr(ParamCount);
-   //Añadir comprobación directorio destino, y abrir destino+nombre original.
+   { TODO : Añadir comprobación directorio destino, y abrir destino+nombre original. }
    writeln('Origen:',Origen);
    writeln('Destino:',Destino);
    if ( ExtractFilePath(Destino) = ( ExtractFileDir(Destino)+'/') ) then Destino:=Destino+(ExtractFileName(Origen)) ;
@@ -296,11 +288,11 @@ end;
 
 procedure dcopy.WriteHelp;
 begin
-  { add your help code here }
   { TODO: Añadir descripción programa y uso }
   writeln(Exename,' -h -c chunksize source destination');
   writeln(ExeName,' -h --help Get help');
   writeln(ExeName,' -c --chunksize Set chunk size (in bytes, between 32 and 1048576');
+  writeln(Exename,' -m --mir Clone (as robocopy) a directory structure');
 end;
 
 var

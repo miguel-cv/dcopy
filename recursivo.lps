@@ -11,16 +11,16 @@
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="0"/>
         <WindowIndex Value="0"/>
-        <TopLine Value="3"/>
-        <CursorPos X="55" Y="37"/>
-        <UsageCount Value="24"/>
+        <TopLine Value="12"/>
+        <CursorPos X="7" Y="41"/>
+        <UsageCount Value="25"/>
         <Loaded Value="True"/>
       </Unit0>
     </Units>
     <General>
       <ActiveWindowIndexAtStart Value="0"/>
     </General>
-    <JumpHistory Count="8" HistoryIndex="7">
+    <JumpHistory Count="13" HistoryIndex="12">
       <Position1>
         <Filename Value="recursivo.lpr"/>
         <Caret Line="10" Column="42" TopLine="1"/>
@@ -53,6 +53,26 @@
         <Filename Value="recursivo.lpr"/>
         <Caret Line="36" Column="11" TopLine="3"/>
       </Position8>
+      <Position9>
+        <Filename Value="recursivo.lpr"/>
+        <Caret Line="12" Column="34" TopLine="1"/>
+      </Position9>
+      <Position10>
+        <Filename Value="recursivo.lpr"/>
+        <Caret Line="30" Column="11" TopLine="1"/>
+      </Position10>
+      <Position11>
+        <Filename Value="recursivo.lpr"/>
+        <Caret Line="29" Column="40" TopLine="9"/>
+      </Position11>
+      <Position12>
+        <Filename Value="recursivo.lpr"/>
+        <Caret Line="30" Column="50" TopLine="10"/>
+      </Position12>
+      <Position13>
+        <Filename Value="recursivo.lpr"/>
+        <Caret Line="32" Column="13" TopLine="8"/>
+      </Position13>
     </JumpHistory>
   </ProjectSession>
   <EditorMacros Count="0"/>
