@@ -28,7 +28,7 @@ type
 
 
 { dcopy }
-procedure copiarchivocompleto(de,a:string);
+procedure copiarchivocompleto(const de,a:string);
 var
   FileStreamOr, FileStreamDes, FileStreamHashes: TFileStream;
   BytesCopiados, TotalBytesCopiados, medidatiempobytescopiados: int64;
@@ -45,12 +45,9 @@ begin
   FileStreamHashes:= TFileStream.Create(de+'.hash',fmCreate);
   finally
   end;
-  { TODO : Añadir contador tiempo total para calcular velocidad media }
-  FileStreamOr.Position := 0;  // Ensure you are at the start of the file
+  FileStreamOr.Position := 0;
   FileStreamDes.Position:= 0;
   TotalBytesCopiados:=0;
-  //writeln;
-  //writeln('Tamaño archivo:',FileStreamOr.Size);
   k:=0;
   medidatiempobytescopiados:=0;
   timeblockstart := now;
@@ -58,17 +55,8 @@ begin
   while FileStreamOr.Size > TotalBytesCopiados do  // While the amount of data read is less than or equal to the size of the stream do
   begin
        BytesCopiados := FileStreamOr.Read(TempBuffer[0],chunksize);  // Read in chunksize of data
-       inc(TotalBytesCopiados, BytesCopiados);  // Increase TotalByteRead by the size of the buffer, i.e. 4096 bytes
-       //write('Bytes leídos en esta tacada:',BytesCopiados,'   ');
-       //write('Bytes leídos:',TotalBytesCopiados);
-       // Do something with Buffer data
-       //write(Buffer);
-       //write(Buffer);
-       //HashBloque:=MD4Print(MD4String(TempBuffer[0]));
-       //writeln('BytesCopiados-',BytesCopiados);
-       //writeln(MD4Print(MD4Buffer(TempBuffer[0],BytesCopiados)));
+       inc(TotalBytesCopiados, BytesCopiados);
        HashBloque:=MD4Print(MD4Buffer(TempBuffer[0],BytesCopiados));
-       //writeln;
        //write('Hash Bloque:',HashBloque);
        FileStreamDes.Write(TempBuffer[0],BytesCopiados);
        FileStreamHashes.Write(HashBloque[1],32);
@@ -142,6 +130,7 @@ while ArchivoHashes.Size > TotalBytesRead do
            inc(TotalBytesRead, BytesRead);
            //writeln('i:',i,' Total:',TotalBytesRead,' BytesRead:',BytesRead,' Tamaño:',ArchivoHashes.Size);
            if (i=(Length(HashArray)-1)) then SetLength(HashArray,(Length(HashArray)+4095));
+           { TODO : Comprobar si es igual de rápido añadir de 1 en 1 en vez de 4095 }
            sleep(0);
       end;
 SetLength(HashArray,i+1);
@@ -270,10 +259,12 @@ begin
    exit;
   {TODO : Extraer path y nombre por separado}
    end;
-   Origen:=ParamStr(1);
-   Destino:=ParamStr(2);
+   Origen:=ParamStr(paramcount-1);
+   Destino:=ParamStr(ParamCount);
    //Añadir comprobación directorio destino, y abrir destino+nombre original.
    writeln('Origen:',Origen);
+   writeln('Destino:',Destino);
+   if ( ExtractFilePath(Destino) = ( ExtractFileDir(Destino)+'/') ) then Destino:=Destino+(ExtractFileName(Origen)) ;
    writeln('Destino:',Destino);
    If FileExists(Destino) then //Comprobar si el tamaño es el mismo ¿y la fecha?
      begin
