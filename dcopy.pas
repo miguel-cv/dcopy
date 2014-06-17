@@ -9,6 +9,10 @@ uses
   Classes, SysUtils, CustApp , md5 ,dateUtils
   { you can add units after this };
 
+var
+
+  chunksize:integer =65536;
+
 type
 
   { dcopya }
@@ -22,18 +26,19 @@ type
     procedure WriteHelp; virtual;
   end;
 
-const chunksize=65535;
+
 { dcopy }
 procedure copiarchivocompleto(de,a:string);
 var
   FileStreamOr, FileStreamDes, FileStreamHashes: TFileStream;
   BytesCopiados, TotalBytesCopiados, medidatiempobytescopiados: int64;
   mb:double;
-  TempBuffer : array [0..chunksize] of AnsiChar;
+  TempBuffer : array of ansichar;
   HashBloque: string;
   timeblockstart,timeblockend,tiempo, totaltime :TDateTime   ;
   k: int64;
 begin
+  SetLength(TempBuffer,chunksize);
   try
   FileStreamOr:= TFileStream.Create (de,fmShareDenyNone);
   FileStreamDes:= TFileStream.Create (a,fmCreate);
@@ -52,8 +57,7 @@ begin
   totaltime := now;
   while FileStreamOr.Size > TotalBytesCopiados do  // While the amount of data read is less than or equal to the size of the stream do
   begin
-
-       BytesCopiados := FileStreamOr.Read(TempBuffer,sizeof(TempBuffer));  // Read in chunksize of data
+       BytesCopiados := FileStreamOr.Read(TempBuffer[0],chunksize);  // Read in chunksize of data
        inc(TotalBytesCopiados, BytesCopiados);  // Increase TotalByteRead by the size of the buffer, i.e. 4096 bytes
        //write('Bytes leídos en esta tacada:',BytesCopiados,'   ');
        //write('Bytes leídos:',TotalBytesCopiados);
@@ -61,10 +65,12 @@ begin
        //write(Buffer);
        //write(Buffer);
        //HashBloque:=MD4Print(MD4String(TempBuffer[0]));
-       HashBloque:=MD4Print(MD4Buffer(TempBuffer,chunksize+1));
+       //writeln('BytesCopiados-',BytesCopiados);
+       //writeln(MD4Print(MD4Buffer(TempBuffer[0],BytesCopiados)));
+       HashBloque:=MD4Print(MD4Buffer(TempBuffer[0],BytesCopiados));
        //writeln;
        //write('Hash Bloque:',HashBloque);
-       FileStreamDes.Write(TempBuffer,BytesCopiados);
+       FileStreamDes.Write(TempBuffer[0],BytesCopiados);
        FileStreamHashes.Write(HashBloque[1],32);
        //write('Copiado:',round((TotalBytesCopiados/FileStreamOr.Size)*100),chr(10));
        inc(medidatiempobytescopiados,BytesCopiados);
@@ -87,6 +93,8 @@ begin
   writeln;
   writeln('Tiempo total:',MilliSecondsBetween(now,totaltime)/1000:4:1);
   writeln('Terminamos, total copiado:',round(TotalBytesCopiados/1024),' KB');
+  writeln('Velocidad media:', round(TotalBytesCopiados/1024)/(MilliSecondsBetween(now,totaltime)/1000):4:1,' MB/s');
+  SetLength(TempBuffer,0);
   FileStreamOr.Free;
   FileStreamDes.Free;
   FileStreamHashes.Free;
@@ -106,7 +114,7 @@ procedure copiarchivoconhash(de,a:string);
 var
 
   TotalBytesRead, BytesRead ,medidatiempobytescopiados: Int64;
-  Buffer : array [0..chunksize] of AnsiChar;  // Tamaño de cada "chunk"
+  Buffer : array of AnsiChar;  // Tamaño de cada "chunk"
   FileStream,ArchivoHashes, ArchivoDestino  : TFileStream;
   HashBloque: string;
   HashArray : array of array [0..31] of AnsiChar;
@@ -121,6 +129,7 @@ begin
 ArchivoHashes:= TFileStream.Create(de+'.hash',fmOpenReadWrite);
 ArchivoHashes.Position := 0;  // Ensure you are at the start of the file
 TotalBytesRead:=0;
+SetLength(Buffer,chunksize);
 SetLength(HashArray,4095);
 i:=0;
 writeln('Leyendo archivo con los hashes:',de+'.hash',' -',(ArchivoHashes.Size/1024):8:1, ' KB') ;
@@ -207,6 +216,7 @@ writeln('Tiempo total:',MilliSecondsBetween(now,totaltime)/1000:4:1);
 writeln('Terminamos, total copiado:',round(TotalBytesCopied/1024/1024),' MB');
 ArchivoDestino.Size:=FileStream.Size;
 // TODO Cambiar tamaño archivo hashes
+SetLength(Buffer,0);
 FileStream.Free;
 ArchivoDestino.Free;
 ArchivoHashes.Free;
@@ -237,10 +247,17 @@ begin
     Terminate;
     Exit;
   end;
-  //chunksize:=65535 ;
-  //if HasOption('c','chunksize') then begin
-  //   chunksize:=strtoint(GetOptionValue('c','chunksize'));
-  //end;
+
+  if HasOption('c','chunksize') then begin
+     chunksize:=strtoint(GetOptionValue('c','chunksize'));
+     if (chunksize < 32) or (chunksize > 1048576) then
+     begin
+        writeln('Invalid chunk size');
+        WriteHelp;
+        Terminate;
+        Exit;
+     end;
+  end;
 
     { TODO : Añadir parámetros, chunk size, mir...}
   { add your program here }
@@ -290,7 +307,7 @@ begin
   { TODO: Añadir descripción programa y uso }
   writeln(Exename,' source destination');
   writeln(ExeName,' -h --help Get help');
-  writeln(ExeName,' -c --chunksize Set chunk size');
+  writeln(ExeName,' -c --chunksize Set chunk size (in bytes, between 32 and 1048576');
 end;
 
 var
