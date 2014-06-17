@@ -251,14 +251,16 @@ begin
     { TODO : Añadir parámetros, chunk size, mir...}
   { add your program here }
   // Añadir try...finally
-   if (ParamStr(1) = '') or (ParamStr(2) = '' ) then
+
+  if (ParamStr(paramcount-1) = '') or (ParamStr(paramcount) = '' ) then
    begin
    writeln('We need at least source and destination....');
    WriteHelp;
    Terminate;
    exit;
-  {TODO : Extraer path y nombre por separado}
+
    end;
+   {TODO : Extraer path y nombre por separado}
    Origen:=ParamStr(paramcount-1);
    Destino:=ParamStr(ParamCount);
    //Añadir comprobación directorio destino, y abrir destino+nombre original.
@@ -296,7 +298,7 @@ procedure dcopy.WriteHelp;
 begin
   { add your help code here }
   { TODO: Añadir descripción programa y uso }
-  writeln(Exename,' source destination');
+  writeln(Exename,' -h -c chunksize source destination');
   writeln(ExeName,' -h --help Get help');
   writeln(ExeName,' -c --chunksize Set chunk size (in bytes, between 32 and 1048576');
 end;
