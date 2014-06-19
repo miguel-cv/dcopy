@@ -86,8 +86,10 @@ type
     writeln;
     writeln('Tiempo total:', MilliSecondsBetween(now, totaltime) / 1000: 4: 1);
     writeln('Terminamos, total copiado:', round(TotalBytesCopiados / 1024), ' KB');
-    writeln('Velocidad media:', round(TotalBytesCopiados / 1024) /
-      (MilliSecondsBetween(now, totaltime) / 1000): 4: 1, ' MB/s');
+    { TODO : Comprobar tiempo 0 }
+    //writeln('Velocidad media:', round(TotalBytesCopiados / 1024) /
+    //  (MilliSecondsBetween(now, totaltime) / 1000): 4: 1, ' MB/s');
+    { TODO : ¿Mover esto más arriba, antes de imprimir los mensajes? }
     SetLength(TempBuffer, 0);
     FileStreamOr.Free;
     FileStreamDes.Free;
@@ -123,7 +125,7 @@ type
     ArchivoHashes.Position := 0;  // Ensure you are at the start of the file
     TotalBytesRead := 0;
     SetLength(Buffer, chunksize);
-    SetLength(HashArray, 4095);
+    SetLength(HashArray, 4096);
     i := 0;
     writeln('Leyendo archivo con los hashes:', de + '.hash', ' -',
       (ArchivoHashes.Size / 1024): 8: 1, ' KB');
@@ -136,7 +138,7 @@ type
       Inc(TotalBytesRead, BytesRead);
       //writeln('i:',i,' Total:',TotalBytesRead,' BytesRead:',BytesRead,' Tamaño:',ArchivoHashes.Size);
       if (i = (Length(HashArray) - 1)) then
-        SetLength(HashArray, (Length(HashArray) + 4095));
+        SetLength(HashArray, (Length(HashArray) + 4096));
       { TODO : Comprobar si es igual de rápido añadir de 1 en 1 en vez de 4095 }
       sleep(0);
     end;
@@ -144,22 +146,25 @@ type
     // Recordar que el 1er elemento del array es el 0
     i := 0;
     writeln('Comenzando a procesar el archivo original');
-
     FileStream := TFileStream.Create(de, fmOpenRead);
+    { TODO : IMPORTANTE COMPROBAR ESTADO APERTURA}
     FileStream.Position := 0;
     TotalBytesRead := 0;
     TotalBytesCopied := 0;
     totaltime := now;
     ArchivoDestino := TFileStream.Create(a, fmOpenReadWrite);
+    { TODO : IMPORTANTE COMPROBAR ESTADO APERTURA}
     //Añadir no abrir hasta que haya que grabar
     while FileStream.Size > TotalBytesRead do
       // While the amount of data read is less than or equal to the size of the stream do
     begin
-      BytesRead := FileStream.Read(Buffer, sizeof(Buffer));
+      BytesRead := FileStream.Read(Buffer[0], chunksize);
       // Read in lenght "chunk" of data
       Inc(TotalBytesRead, BytesRead);
-      HashBloque := MD4Print(MD4Buffer(Buffer, chunksize + 1));
-      //writeln('Procesando bloque:',i);
+      HashBloque := MD4Print(MD4Buffer(Buffer[0], chunksize));
+      //HashBloque := MD4Print(MD4Buffer(Buffer, Length(Buffer)));
+            Write(StringOfChar(#8, 80));
+      write('Procesando bloque:',i);
       //writeln(HashBloque,'-',HashArray[i]);
       //writeln(Buffer);
       if HashBloque <> HashArray[i] then
@@ -205,9 +210,9 @@ type
     end;
     writeln;
     writeln('Tiempo total:', MilliSecondsBetween(now, totaltime) / 1000: 4: 1);
-    writeln('Terminamos, total copiado:', round(TotalBytesCopied / 1024 / 1024), ' MB');
-    writeln('Velocidad media:', round(TotalBytesCopied / 1024) /
-      (MilliSecondsBetween(now, totaltime) / 1000): 4: 1, ' MB/s');
+    writeln('Terminamos, total copiado:', round(TotalBytesCopied / 1024 ), ' KB');
+    //writeln('Velocidad media:', round(TotalBytesCopied / 1024) /
+      //(MilliSecondsBetween(now, totaltime) / 1000): 4: 1, ' MB/s');
     ArchivoDestino.Size := FileStream.Size;
     // TODO Cambiar tamaño archivo hashes
     SetLength(Buffer, 0);
@@ -276,6 +281,8 @@ type
     ErrorMsg: string;
     Origen, Destino: string;
     i: integer;
+    SourceDir,DestDir : string;
+    SourceFilename,DestFilename : string;
 
   begin
     // quick check parameters
@@ -327,7 +334,6 @@ type
     Destino := ParamStr(ParamCount);
     { TODO : Añadir comprobación directorio destino, y abrir destino+nombre original. }
     writeln('Origen:', Origen);
-    writeln('Destino:', Destino);
     if (ExtractFilePath(Destino) = (ExtractFileDir(Destino) + '/')) then
       Destino := Destino + (ExtractFileName(Origen));
     writeln('Destino:', Destino);
