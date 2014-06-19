@@ -8,6 +8,7 @@ uses {$IFDEF UNIX} {$IFDEF UseCThreads}
   SysUtils,
   CustApp,
   md5,
+  crc,
   dateUtils;
 
 var
@@ -38,6 +39,7 @@ type
     HashBloque: string;
     timeblockstart, timeblockend, tiempo, totaltime: TDateTime;
     k: int64;
+
   begin
     SetLength(TempBuffer, chunksize);
     try
@@ -60,13 +62,15 @@ type
       // Read in chunksize of data
       Inc(TotalBytesCopiados, BytesCopiados);
       HashBloque := MD4Print(MD4Buffer(TempBuffer[0], BytesCopiados));
-      //write('Hash Bloque:',HashBloque);
+      writeln(HashBloque);
+      { TODO : mirar con CRC uses crc ; ejemplo en https://github.com/graemeg/freepascal/blob/master/packages/hash/examples/crctest.pas }
       FileStreamDes.Write(TempBuffer[0], BytesCopiados);
       FileStreamHashes.Write(HashBloque[1], 32);
       //write('Copiado:',round((TotalBytesCopiados/FileStreamOr.Size)*100),chr(10));
       Inc(medidatiempobytescopiados, BytesCopiados);
       Inc(k);
-      if (k = 512) then
+       { TODO : Cambiar esto por un tiempo , con millisecondsbetween... }
+      {if (k = 512) then
       begin
         timeblockend := now;
         mb := (medidatiempobytescopiados / 1024) / 1024;
@@ -74,13 +78,13 @@ type
         Write('MB: ', mb: 4: 1, ' Tiempo: ', tiempo: 4: 1, ' milisegundos',
           ' Velocidad: ',
           (mb / (tiempo / 1000)): 3: 2, ' Total KB: ',
-          (TotalBytesCopiados / 1024): 8: 1);
+          (round(TotalBytesCopiados / 1024)));
         //Write(' Total copiado hasta el momento: ',round(TotalBytesCopiados/1024/1024),' MB',' Velocidad: ',round((medidatiempobytescopiados/(1024*1024)))/(MilliSecondsBetween(timeblockend, timeblockstart)/1000));
         Write(StringOfChar(#8, 80));
         k := 0;
         timeblockstart := now;
         medidatiempobytescopiados := 0;
-      end;
+      end;        }
       Sleep(0);
     end;
     writeln;
@@ -120,7 +124,7 @@ type
   begin
 
     //leer hashes de archivo hashes a un array
-    //TODO Comprobar existencia archivo hashes, y si no llamar a copiararchivocompleto
+    { TODO : Comprobar existencia archivo hashes, y si no llamar a copiararchivocompleto }
     ArchivoHashes := TFileStream.Create(de + '.hash', fmOpenReadWrite);
     ArchivoHashes.Position := 0;  // Ensure you are at the start of the file
     TotalBytesRead := 0;
@@ -128,9 +132,10 @@ type
     SetLength(HashArray, 4096);
     i := 0;
     writeln('Leyendo archivo con los hashes:', de + '.hash', ' -',
-      (ArchivoHashes.Size / 1024): 8: 1, ' KB');
+      (ArchivoHashes.Size / 1024):0:1, ' KB');
     while ArchivoHashes.Size > TotalBytesRead do
     begin
+      { TODO : NO LEERLO de 32 bytes en 32, que es muy lento }
       BytesRead := ArchivoHashes.Read(HashArray[i], 32);
       //writeln('Posición archivo hashes:',ArchivoHashes.Position);
       //write(i,'-',HashArray[i]);
@@ -161,23 +166,20 @@ type
       BytesRead := FileStream.Read(Buffer[0], chunksize);
       // Read in lenght "chunk" of data
       Inc(TotalBytesRead, BytesRead);
-      HashBloque := MD4Print(MD4Buffer(Buffer[0], chunksize));
+      HashBloque := MD4Print(MD4Buffer(Buffer[0], BytesRead));
       //HashBloque := MD4Print(MD4Buffer(Buffer, Length(Buffer)));
-            Write(StringOfChar(#8, 80));
-      write('Procesando bloque:',i);
-      //writeln(HashBloque,'-',HashArray[i]);
+      writeln(HashBloque,'-',HashArray[i]);
       //writeln(Buffer);
       if HashBloque <> HashArray[i] then
       begin
-        Write(StringOfChar(#8, 80));
-        Write('-----------Bloque distinto:', i);
-        //writeln('Posición:',FileStream.Position);
-        //writeln('Vamos a escribir en ',(FileStream.Position-BytesRead));
+        //Write(StringOfChar(#8, 80));
+        //Write('-----------Bloque distinto:', i);
         if FileStream.Position < chunksize then
           ArchivoDestino.Position := 0
         else
           ArchivoDestino.Position := (FileStream.Position - BytesRead);
-        ArchivoDestino.Write(Buffer, BytesRead);
+
+        ArchivoDestino.Write(Buffer[0], BytesRead);
         Inc(TotalBytesCopied, BytesRead);
         //writeln('Posición archivohashes antes:',ArchivoHashes.Position);
         ArchivoHashes.Position := (i * 32);
