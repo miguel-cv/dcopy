@@ -66,7 +66,6 @@ type
       Inc(TotalBytesCopiados, BytesCopiados);
       HashBloque := MD4Print(MD4Buffer(TempBuffer[0], BytesCopiados));
       MD5Update(MD5Context, TempBuffer[0], BytesCopiados);
-      { TODO : Calcular de paso el hash MD5 }
       //writeln(HashBloque);
       { TODO : mirar con CRC uses crc ; ejemplo en https://github.com/graemeg/freepascal/blob/master/packages/hash/examples/crctest.pas }
       FileStreamDes.Write(TempBuffer[0], BytesCopiados);
@@ -304,7 +303,7 @@ type
     ErrorMsg := CheckOptions('hc:', 'help chunksize:');
     if ErrorMsg <> '' then
     begin
-      writeln('Opción desconocida');
+      writeln('Unknown option');
       //ShowException(Exception.Create(ErrorMsg));
       WriteHelp;
       Terminate;
@@ -331,7 +330,6 @@ type
       end;
     end;
 
-    { TODO : Añadir parámetros, chunk size, mir...}
     { add your program here }
     { TODO : Añadir try...finally }
 
@@ -348,10 +346,38 @@ type
     Origen := ParamStr(paramcount - 1);
     Destino := ParamStr(ParamCount);
     { TODO : Añadir comprobación directorio destino, y abrir destino+nombre original. }
-    writeln('Origen:', Origen);
+
+    if (Origen = Destino) then
+    begin
+      writeln('You can''t copy a file/directory over itself');
+      WriteHelp;
+      Terminate;
+      Exit;
+    end;
+    if (ExtractFileName(Origen) = '' ) then
+    if (ExtractFileName(Destino) <> '' ) then
+       begin
+            writeln ('You can''t copy a directory to a file');
+            WriteHelp;
+            Terminate;
+            Exit;
+       end
+       else
+       begin
+            writeln ('Bien, dos directorios');
+            Terminate;
+            Exit;
+       end;
+
     if (ExtractFilePath(Destino) = (ExtractFileDir(Destino) + '/')) then
       Destino := Destino + (ExtractFileName(Origen));
-    writeln('Destino:', Destino);
+
+    writeln(Origen,'-',Destino);
+
+    Terminate;
+    Exit;
+
+
     if FileExists(Destino) then //Comprobar si el tamaño es el mismo ¿y la fecha?
     begin
       writeln('Destino existe, procesamos archivo de hashes');
@@ -381,6 +407,7 @@ type
   procedure dcopy.WriteHelp;
   begin
     { TODO: Añadir descripción programa y uso }
+    writeln('dcopy - write description ');
     writeln(Exename, ' -h -c -m -n chunksize source destination');
     writeln(ExeName, ' -h --help Get help');
     writeln(ExeName, ' -c --chunksize Set chunk size (in bytes, between 32 and 1048576');

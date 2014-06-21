@@ -3,7 +3,7 @@
   <ProjectSession>
     <Version Value="9"/>
     <BuildModes Active="Default"/>
-    <Units Count="4">
+    <Units Count="5">
       <Unit0>
         <Filename Value="dcopy.pas"/>
         <IsPartOfProject Value="True"/>
@@ -11,9 +11,9 @@
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="0"/>
         <WindowIndex Value="0"/>
-        <TopLine Value="367"/>
-        <CursorPos X="26" Y="387"/>
-        <UsageCount Value="54"/>
+        <TopLine Value="337"/>
+        <CursorPos X="7" Y="355"/>
+        <UsageCount Value="56"/>
         <Loaded Value="True"/>
       </Unit0>
       <Unit1>
@@ -38,11 +38,19 @@
         <CursorPos X="16" Y="13"/>
         <UsageCount Value="10"/>
       </Unit3>
+      <Unit4>
+        <Filename Value="/usr/lib/codetyphon/fpcsrc/packages/fcl-base/src/custapp.pp"/>
+        <UnitName Value="CustApp"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="274"/>
+        <CursorPos X="14" Y="301"/>
+        <UsageCount Value="10"/>
+      </Unit4>
     </Units>
     <General>
       <ActiveWindowIndexAtStart Value="0"/>
     </General>
-    <JumpHistory Count="9" HistoryIndex="8">
+    <JumpHistory Count="15" HistoryIndex="14">
       <Position1>
         <Filename Value="dcopy.pas"/>
         <Caret Line="43" Column="28" TopLine="18"/>
@@ -79,6 +87,30 @@
         <Filename Value="dcopy.pas"/>
         <Caret Line="40" Column="30" TopLine="27"/>
       </Position9>
+      <Position10>
+        <Filename Value="dcopy.pas"/>
+        <Caret Line="333" Column="1" TopLine="323"/>
+      </Position10>
+      <Position11>
+        <Filename Value="dcopy.pas"/>
+        <Caret Line="68" Column="59" TopLine="53"/>
+      </Position11>
+      <Position12>
+        <Filename Value="dcopy.pas"/>
+        <Caret Line="76" Column="1" TopLine="53"/>
+      </Position12>
+      <Position13>
+        <Filename Value="dcopy.pas"/>
+        <Caret Line="135" Column="1" TopLine="119"/>
+      </Position13>
+      <Position14>
+        <Filename Value="dcopy.pas"/>
+        <Caret Line="146" Column="1" TopLine="120"/>
+      </Position14>
+      <Position15>
+        <Filename Value="dcopy.pas"/>
+        <Caret Line="361" Column="8" TopLine="340"/>
+      </Position15>
     </JumpHistory>
   </ProjectSession>
   <Debugging>
