@@ -15,10 +15,11 @@ var
 
   chunksize: integer = 65536;    { We split the file in chunksize bytes }
   minsize: integer = 65536;      { Minimum size to skip hashing }
+  CalculateMD5 : Boolean = False;
 
 type
 
-  { dcopya }
+  { dcopy }
 
   dcopy = class(TCustomApplication)
   protected
@@ -31,6 +32,14 @@ type
 
 
   { dcopy }
+
+  //------------------------------
+
+
+
+
+  //------------------------------
+
   procedure copiarchivocompleto(const de, a: string);
   var
     FileStreamOr, FileStreamDes, FileStreamHashes: TFileStream;
@@ -40,8 +49,8 @@ type
     HashBloque: string;
     timeblockstart, timeblockend, tiempo, totaltime: TDateTime;
     k: int64;
-    MD5Context: TMD5Context ;
-    HashMD5 : TMDDigest ;
+    MD5Context: TMD5Context;
+    HashMD5: TMDDigest;
   begin
     SetLength(TempBuffer, chunksize);
     try
@@ -66,14 +75,13 @@ type
       Inc(TotalBytesCopiados, BytesCopiados);
       HashBloque := MD4Print(MD4Buffer(TempBuffer[0], BytesCopiados));
       MD5Update(MD5Context, TempBuffer[0], BytesCopiados);
-      //writeln(HashBloque);
       { TODO : mirar con CRC uses crc ; ejemplo en https://github.com/graemeg/freepascal/blob/master/packages/hash/examples/crctest.pas }
       FileStreamDes.Write(TempBuffer[0], BytesCopiados);
       FileStreamHashes.Write(HashBloque[1], 32);
       //write('Copiado:',round((TotalBytesCopiados/FileStreamOr.Size)*100),chr(10));
       Inc(medidatiempobytescopiados, BytesCopiados);
       Inc(k);
-       { TODO : Cambiar esto por un tiempo , con millisecondsbetween... }
+      { TODO : Cambiar esto por un tiempo , con millisecondsbetween... }
       {if (k = 512) then
       begin
         timeblockend := now;
@@ -94,8 +102,8 @@ type
     writeln;
     writeln('Tiempo total:', MilliSecondsBetween(now, totaltime) / 1000: 4: 1);
     writeln('Terminamos, total copiado:', round(TotalBytesCopiados / 1024), ' KB');
-    MD5Final(MD5Context,HashMD5);
-    writeln('Hash MD5 :',MD5Print(HashMD5));
+    MD5Final(MD5Context, HashMD5);
+    writeln('Hash MD5 Archivo original:', MD5Print(HashMD5));
     { TODO : Comprobar tiempo 0 }
     //writeln('Velocidad media:', round(TotalBytesCopiados / 1024) /
     //  (MilliSecondsBetween(now, totaltime) / 1000): 4: 1, ' MB/s');
@@ -121,14 +129,16 @@ type
     TotalBytesRead, BytesRead, medidatiempobytescopiados: int64;
     Buffer: array of AnsiChar;  // Tamaño de cada "chunk"
     FileStream, ArchivoHashes, ArchivoDestino: TFileStream;
-    HashBloque: string;
+    HashBloque : string;
+    TempHashArray : array  [0..65535] of char;
     HashArray: array of array [0..31] of AnsiChar;
     //MaxArray : LongInt;
-    i, k, TotalBytesCopied: longint;
+    i,j, k,l, TotalBytesCopied: longint;
     timeblockstart, timeblockend, totaltime, tiempo: TDateTime;
     mb: double;
-    MD5Context: TMD5Context ;
-    HashMD5 : TMDDigest ;
+    MD5Context: TMD5Context;
+    HashMD5: TMDDigest;
+
   begin
 
     //leer hashes de archivo hashes a un array
@@ -136,11 +146,11 @@ type
     ArchivoHashes := TFileStream.Create(de + '.hash', fmOpenReadWrite);
     ArchivoHashes.Position := 0;  // Ensure you are at the start of the file
     TotalBytesRead := 0;
-    SetLength(Buffer, chunksize);
-    SetLength(HashArray, 4096);
-    i := 0;
-    writeln('Leyendo archivo con los hashes:', de + '.hash', ' -',
-      (ArchivoHashes.Size / 1024):0:1, ' KB');
+
+    {SetLength(HashArray, 4096); }
+    writeln('Leyendo archivo con los hashes:', de + '.hash', ' - ',
+      (ArchivoHashes.Size / 1024): 0: 1, ' KB');
+    {i := 0;
     while ArchivoHashes.Size > TotalBytesRead do
     begin
       { TODO : NO LEERLO de 32 bytes en 32, que es muy lento }
@@ -154,17 +164,39 @@ type
         SetLength(HashArray, (Length(HashArray) + 4096));
       { TODO : Comprobar si es igual de rápido añadir de 1 en 1 en vez de 4095 }
       sleep(0);
+    end;   }
+    i:=round(ArchivoHashes.Size/32);
+    SetLength(HashArray, i+1); //1 más por si acaso
+    writeln('i es ',i);
+    writeln('Size: ', ArchivoHashes.Size );
+    k:=0;
+    while ArchivoHashes.Size > TotalBytesRead do
+    begin
+       BytesRead := ArchivoHashes.Read(TempHashArray, 65536 );
+       Inc(TotalBytesRead, BytesRead);
+       for j:=0 to round(BytesRead/32)-1 do
+       begin
+         //l:=(j*32)+1;
+         //if k=2048 then writeln('i:',i,'-j:',j,'-k:',k,'---',BytesRead,'+',TempHashArray);
+         //writeln(MidStr(TempHashArray,l,32) );
+         HashArray[k]:=copy(TempHashArray,j*32+1,32);
+         //writeln(k,'-',HashArray[k]);
+         inc(k);
+       end;
     end;
+
+    SetLength(Buffer, chunksize);
     MD5Init(MD5Context);
-    SetLength(HashArray, i + 1);
+    //SetLength(HashArray, i + 1);
     // Recordar que el 1er elemento del array es el 0
-    i := 0;
+
     writeln('Comenzando a procesar el archivo original');
     FileStream := TFileStream.Create(de, fmOpenRead);
     { TODO : IMPORTANTE COMPROBAR ESTADO APERTURA}
     FileStream.Position := 0;
     TotalBytesRead := 0;
     TotalBytesCopied := 0;
+    i := 0;
     totaltime := now;
     ArchivoDestino := TFileStream.Create(a, fmOpenReadWrite);
     { TODO : IMPORTANTE COMPROBAR ESTADO APERTURA}
@@ -180,10 +212,11 @@ type
       //HashBloque := MD4Print(MD4Buffer(Buffer, Length(Buffer)));
       //writeln(HashBloque,'-',HashArray[i]);
       //writeln(Buffer);
+      //writeln(HashBloque,'-',HashArray[i]);
       if HashBloque <> HashArray[i] then
       begin
-        Write(StringOfChar(#8, 80));
-        Write('-----------Bloque distinto:', i);
+        //Write(StringOfChar(#8, 80));
+        Writeln('-----------Bloque distinto:', i);
         if FileStream.Position < chunksize then
           ArchivoDestino.Position := 0
         else
@@ -222,11 +255,11 @@ type
     end;
     writeln;
     writeln('Tiempo total:', MilliSecondsBetween(now, totaltime) / 1000: 4: 1);
-    writeln('Terminamos, total copiado:', round(TotalBytesCopied / 1024 ), ' KB');
-    MD5Final(MD5Context,HashMD5);
-    writeln('Hash MD5 :',MD5Print(HashMD5));
+    writeln('Terminamos, total copiado:', round(TotalBytesCopied / 1024), ' KB');
+    MD5Final(MD5Context, HashMD5);
+    writeln('Hash MD5 Archivo Original:', MD5Print(HashMD5));
     //writeln('Velocidad media:', round(TotalBytesCopied / 1024) /
-      //(MilliSecondsBetween(now, totaltime) / 1000): 4: 1, ' MB/s');
+    //(MilliSecondsBetween(now, totaltime) / 1000): 4: 1, ' MB/s');
     ArchivoDestino.Size := FileStream.Size;
     // TODO Cambiar tamaño archivo hashes
     SetLength(Buffer, 0);
@@ -295,8 +328,8 @@ type
     ErrorMsg: string;
     Origen, Destino: string;
     i: integer;
-    SourceDir,DestDir : string;
-    SourceFilename,DestFilename : string;
+    SourceDir, DestDir: string;
+    SourceFilename, DestFilename: string;
 
   begin
     // quick check parameters
@@ -341,11 +374,10 @@ type
       exit;
     end;
 
-
     { TODO : Extraer path y nombre por separado}
     Origen := ParamStr(paramcount - 1);
     Destino := ParamStr(ParamCount);
-    { TODO : Añadir comprobación directorio destino, y abrir destino+nombre original. }
+    { TODO : Añadir comprobación directorio destino, y abrir destino+nombre original.FileExists }
 
     if (Origen = Destino) then
     begin
@@ -354,29 +386,25 @@ type
       Terminate;
       Exit;
     end;
-    if (ExtractFileName(Origen) = '' ) then
-    if (ExtractFileName(Destino) <> '' ) then
-       begin
-            writeln ('You can''t copy a directory to a file');
-            WriteHelp;
-            Terminate;
-            Exit;
-       end
-       else
-       begin
-            writeln ('Bien, dos directorios');
-            Terminate;
-            Exit;
-       end;
+    if (ExtractFileName(Origen) = '') then
+      if (ExtractFileName(Destino) <> '') then
+      begin
+        writeln('You can''t copy a directory to a file');
+        WriteHelp;
+        Terminate;
+        Exit;
+      end
+      else
+      begin
+        writeln('Bien, dos directorios');
+        Terminate;
+        Exit;
+      end;
 
     if (ExtractFilePath(Destino) = (ExtractFileDir(Destino) + '/')) then
       Destino := Destino + (ExtractFileName(Origen));
 
-    writeln(Origen,'-',Destino);
-
-    Terminate;
-    Exit;
-
+    writeln(Origen, '-', Destino);
 
     if FileExists(Destino) then //Comprobar si el tamaño es el mismo ¿y la fecha?
     begin
@@ -411,9 +439,11 @@ type
     writeln(Exename, ' -h -c -m -n chunksize source destination');
     writeln(ExeName, ' -h --help Get help');
     writeln(ExeName, ' -c --chunksize Set chunk size (in bytes, between 32 and 1048576');
-    writeln(ExeName, ' -m --minsize Minimum size to skip hashing (copy directly) (in Kbytes, default 65536');
+    writeln(ExeName,
+      ' -m --minsize Minimum size to skip hashing (copy directly) (in Kbytes, default 65536');
     writeln(Exename, ' -r --mir Clone (as robocopy) a directory structure');
     writeln(Exename, ' -n --mon monitor folder for changes');
+    writeln(Exename, ' -5 --md5 Calculate md5 hash');
   end;
 
 var
