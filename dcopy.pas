@@ -49,45 +49,45 @@ type
   procedure copiarchivocompleto(const de, a: string);
 
   var
-    FileStreamOr, FileStreamDes, FileStreamHashes: TFileStream;
-    BytesCopiados, TotalBytesCopiados, medidatiempobytescopiados: int64;
+    SourceFile, DestFile, FileHashes: TFileStream;
+    BytesCopied, TotalBytesCopied, medidatiempobytescopiados: int64;
     mb: double;
-    TempBuffer: array of ansichar;
-    HashBloque: string;
+    Buffer: array of ansichar;
+    BlockHash: string;
     timeblockstart, timeblockend, tiempo, totaltime: TDateTime;
     k: int64;
     MD5Context: TMD5Context;
     HashMD5: TMDDigest;
   begin
-    SetLength(TempBuffer, chunksize);
+    SetLength(Buffer, chunksize);
     try
-      FileStreamOr := TFileStream.Create(de, fmShareDenyNone);
-      FileStreamDes := TFileStream.Create(a, fmCreate);
-      FileStreamHashes := TFileStream.Create(de + '.hash', fmCreate);
+      SourceFile := TFileStream.Create(de, fmShareDenyNone);
+      DestFile := TFileStream.Create(a, fmCreate);
+      FileHashes := TFileStream.Create(de + '.hash', fmCreate);
     finally
     end;
-    FileStreamOr.Position := 0;
-    FileStreamDes.Position := 0;
-    TotalBytesCopiados := 0;
+    SourceFile.Position := 0;
+    DestFile.Position := 0;
+    TotalBytesCopied := 0;
     k := 0;
     if CalculateMD5 then
       MD5Init(MD5Context);
     medidatiempobytescopiados := 0;
     timeblockstart := now;
     totaltime := now;
-    while FileStreamOr.Size > TotalBytesCopiados do
+    while SourceFile.Size > TotalBytesCopied do
       // While the amount of data read is less than or equal to the size of the stream do
     begin
-      BytesCopiados := FileStreamOr.Read(TempBuffer[0], chunksize);
+      BytesCopied := SourceFile.Read(Buffer[0], chunksize);
       // Read in chunksize of data
-      Inc(TotalBytesCopiados, BytesCopiados);
-      HashBloque := MD4Print(MD4Buffer(TempBuffer[0], BytesCopiados));
+      Inc(TotalBytesCopied, BytesCopied);
+      BlockHash := MD4Print(MD4Buffer(Buffer[0], BytesCopied));
       if CalculateMD5 then
-        MD5Update(MD5Context, TempBuffer[0], BytesCopiados);
+        MD5Update(MD5Context, Buffer[0], BytesCopied);
       { TODO : mirar con CRC uses crc ; ejemplo en https://github.com/graemeg/freepascal/blob/master/packages/hash/examples/crctest.pas }
-      FileStreamDes.Write(TempBuffer[0], BytesCopiados);
-      FileStreamHashes.Write(HashBloque[1], 32);
-      Inc(medidatiempobytescopiados, BytesCopiados);
+      DestFile.Write(Buffer[0], BytesCopied);
+      FileHashes.Write(BlockHash[1], 32);
+      Inc(medidatiempobytescopiados, BytesCopied);
       Inc(k);
       { TODO : Cambiar esto por un tiempo , con millisecondsbetween... }
 
@@ -99,8 +99,8 @@ type
         Write('MB: ', mb: 4: 1, ' Tiempo: ', tiempo: 4: 1, ' milisegundos',
           ' Velocidad: ',
           (mb / (tiempo / 1000)): 3: 2, ' Total KB: ',
-          (round(TotalBytesCopiados / 1024)));
-        //Write(' Total copiado hasta el momento: ',round(TotalBytesCopiados/1024/1024),' MB',' Velocidad: ',round((medidatiempobytescopiados/(1024*1024)))/(MilliSecondsBetween(timeblockend, timeblockstart)/1000));
+          (round(TotalBytesCopied / 1024)));
+        //Write(' Total copiado hasta el momento: ',round(TotalBytesCopied/1024/1024),' MB',' Velocidad: ',round((medidatiempobytescopiados/(1024*1024)))/(MilliSecondsBetween(timeblockend, timeblockstart)/1000));
         Write(StringOfChar(#8, 80));
         k := 0;
         timeblockstart := now;
@@ -110,20 +110,20 @@ type
     end;
     writeln;
     writeln('Tiempo total:', MilliSecondsBetween(now, totaltime) / 1000: 4: 1);
-    writeln('Terminamos, total copiado:', round(TotalBytesCopiados / 1024), ' KB');
+    writeln('Terminamos, total copiado:', round(TotalBytesCopied / 1024), ' KB');
     if CalculateMD5 then
     begin
       MD5Final(MD5Context, HashMD5);
       writeln('Hash MD5 Archivo original:', MD5Print(HashMD5));
     end;
     { TODO : Comprobar tiempo 0 }
-    //writeln('Velocidad media:', round(TotalBytesCopiados / 1024) /
+    //writeln('Velocidad media:', round(TotalBytesCopied / 1024) /
     //  (MilliSecondsBetween(now, totaltime) / 1000): 4: 1, ' MB/s');
     { TODO : ¿Mover esto más arriba, antes de imprimir los mensajes? }
-    SetLength(TempBuffer, 0);
-    FileStreamOr.Free;
-    FileStreamDes.Free;
-    FileStreamHashes.Free;
+    SetLength(Buffer, 0);
+    SourceFile.Free;
+    DestFile.Free;
+    FileHashes.Free;
     FileSetDateUTF8(a, fileage(de));
   end;
 
@@ -140,8 +140,8 @@ type
 
     TotalBytesRead, BytesRead, medidatiempobytescopiados: int64;
     Buffer: array of AnsiChar;
-    FileStream, ArchivoHashes, ArchivoDestino: TFileStream;
-    HashBloque: string;
+    FileStream, FileHashes, DestFile: TFileStream;
+    BlockHash: string;
     TempHashArray: array  [0..65535] of char;
     HashArray: array of array [0..31] of AnsiChar;
     i, j, k, l, TotalBytesCopied: longint;
@@ -153,18 +153,18 @@ type
   begin
 
     { TODO : Comprobar existencia archivo hashes, y si no llamar a copiararchivocompleto }
-    ArchivoHashes := TFileStream.Create(de + '.hash', fmOpenReadWrite);
-    ArchivoHashes.Position := 0;
+    FileHashes := TFileStream.Create(de + '.hash', fmOpenReadWrite);
+    FileHashes.Position := 0;
     TotalBytesRead := 0;
     writeln('Leyendo archivo con los hashes:', de + '.hash', ' - ',
-      (ArchivoHashes.Size / 1024): 0: 1, ' KB');
-    i := round(ArchivoHashes.Size / 32);
+      (FileHashes.Size / 1024): 0: 1, ' KB');
+    i := round(FileHashes.Size / 32);
     SetLength(HashArray, i + 1);
     //1 más por si acaso
     k := 0;
-    while ArchivoHashes.Size > TotalBytesRead do
+    while FileHashes.Size > TotalBytesRead do
     begin
-      BytesRead := ArchivoHashes.Read(TempHashArray, 65536);
+      BytesRead := FileHashes.Read(TempHashArray, 65536);
       Inc(TotalBytesRead, BytesRead);
       for j := 0 to round(BytesRead / 32) - 1 do
       begin
@@ -184,7 +184,7 @@ type
     TotalBytesCopied := 0;
     i := 0;
     totaltime := now;
-    ArchivoDestino := TFileStream.Create(a, fmOpenReadWrite);
+    DestFile := TFileStream.Create(a, fmOpenReadWrite);
     { TODO : IMPORTANTE COMPROBAR ESTADO APERTURA}
     //Añadir no abrir hasta que haya que grabar
     while FileStream.Size > TotalBytesRead do
@@ -192,21 +192,21 @@ type
       BytesRead := FileStream.Read(Buffer[0], chunksize);
       // Read in lenght "chunksize" of data
       Inc(TotalBytesRead, BytesRead);
-      HashBloque := MD4Print(MD4Buffer(Buffer[0], BytesRead));
+      BlockHash := MD4Print(MD4Buffer(Buffer[0], BytesRead));
       if CalculateMD5 then
         MD5Update(MD5Context, Buffer[0], BytesRead);
-      if HashBloque <> HashArray[i] then
+      if BlockHash <> HashArray[i] then
       begin
         Write(StringOfChar(#8, 80));
         Write('-----------Bloque distinto:', i);
         if FileStream.Position < chunksize then
-          ArchivoDestino.Position := 0
+          DestFile.Position := 0
         else
-          ArchivoDestino.Position := (FileStream.Position - BytesRead);
-        ArchivoDestino.Write(Buffer[0], BytesRead);
+          DestFile.Position := (FileStream.Position - BytesRead);
+        DestFile.Write(Buffer[0], BytesRead);
         Inc(TotalBytesCopied, BytesRead);
-        ArchivoHashes.Position := (i * 32);
-        ArchivoHashes.Write(HashBloque[1], 32);
+        FileHashes.Position := (i * 32);
+        FileHashes.Write(BlockHash[1], 32);
         Sleep(0);
       end;
       Inc(i);
@@ -242,11 +242,12 @@ type
     end;
     //writeln('Velocidad media:', round(TotalBytesCopied / 1024) /
     //(MilliSecondsBetween(now, totaltime) / 1000): 4: 1, ' MB/s');
-    ArchivoDestino.Size := FileStream.Size;
+    DestFile.Size := FileStream.Size;
     { TODO: Comprobar Cambiar tamaño archivo hashes }
     FileStream.Free;
-    ArchivoDestino.Free;
-    ArchivoHashes.Free;
+    DestFile.Free;
+    FileHashes.Size:=FileHashes.Position;
+    FileHashes.Free;
     SetLength(Buffer, 0);
     SetLength(HashArray, 0);
     FileSetDateUTF8(a, fileage(de));
