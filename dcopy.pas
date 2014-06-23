@@ -9,6 +9,7 @@ uses {$IFDEF UNIX} {$IFDEF UseCThreads}
   SysUtils,
   CustApp,
   md5,
+  fileutil,
   //crc,
   dateUtils;
 
@@ -123,7 +124,7 @@ type
     FileStreamOr.Free;
     FileStreamDes.Free;
     FileStreamHashes.Free;
-
+    FileSetDateUTF8(a, fileage(de));
   end;
 
   //------------------------------
@@ -160,8 +161,6 @@ type
     i := round(ArchivoHashes.Size / 32);
     SetLength(HashArray, i + 1);
     //1 más por si acaso
-    writeln('i es ', i);
-    writeln('Size: ', ArchivoHashes.Size);
     k := 0;
     while ArchivoHashes.Size > TotalBytesRead do
     begin
@@ -250,6 +249,7 @@ type
     ArchivoHashes.Free;
     SetLength(Buffer, 0);
     SetLength(HashArray, 0);
+    FileSetDateUTF8(a, fileage(de));
   end;
 
   //------------------------------
@@ -318,7 +318,7 @@ type
 
   begin
     // quick check parameters
-    ErrorMsg := CheckOptions('hc:', 'help chunksize:');
+    ErrorMsg := CheckOptions('hc:5', 'help chunksize: md5');
     if ErrorMsg <> '' then
     begin
       writeln('Unknown option');
@@ -400,6 +400,8 @@ type
     if FileExists(Destino) then //Comprobar si el tamaño es el mismo ¿y la fecha?
     begin
       writeln('Destino existe, procesamos archivo de hashes');
+      writeln('Tamaño y fecha origen:',fileutil.Filesize(Origen),'-',datetimetostr(filedatetodatetime(fileage(Origen))));
+      writeln('Tamaño y fecha destino:',fileutil.Filesize(Destino),'-',datetimetostr(filedatetodatetime(fileage(Destino))));
       copiarchivoconhash(Origen, Destino);
     end
     else
