@@ -15,7 +15,6 @@ uses {$IFDEF UNIX} {$IFDEF UseCThreads}
 var
 
   ChunkSize: integer = 65536;    { We split the file in chunksize bytes }
-  MinFileSize: integer = 65536;  { Minimum size to skip hashing }
   CalculateMD5: boolean = False; { Set default : don't calculate md5 hash of file }
   MIR : Boolean = False;
   Origen, Destino: string;
@@ -476,8 +475,6 @@ type
     writeln(Exename, ' -h -c -m -n chunksize source destination');
     writeln(ExeName, ' -h --help Get help');
     writeln(ExeName, ' -c --chunksize Set chunk size (in bytes, between 32 and 1048576');
-    writeln(ExeName,
-      ' -m --minsize Minimum size to skip hashing (copy directly) (in Kbytes, default 65536');
     writeln(Exename, ' -r --mir Clone (as robocopy) a directory structure');
     writeln(Exename, ' -n --mon monitor folder for changes');
     writeln(Exename, ' -5 --md5 Calculate md5 hash');
