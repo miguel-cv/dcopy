@@ -1,4 +1,3 @@
-
 program dcopya;
 
 {$mode objfpc}{$H+}
@@ -10,14 +9,15 @@ uses {$IFDEF UNIX} {$IFDEF UseCThreads}
   CustApp,
   md5,
   fileutil,
-  //crc,
+  //lazutf8classes,
   dateUtils;
 
 var
 
-  chunksize: integer = 65536;    { We split the file in chunksize bytes }
-  minsize: integer = 65536;      { Minimum size to skip hashing }
-  CalculateMD5: boolean = False; { Set default don't get md5 hash of file }
+  ChunkSize: integer = 65536;    { We split the file in chunksize bytes }
+  MinFileSize: integer = 65536;  { Minimum size to skip hashing }
+  CalculateMD5: boolean = False; { Set default : don't calculate md5 hash of file }
+  Origen, Destino: string;
 
 type
 
@@ -46,7 +46,7 @@ type
 
   //------------------------------
 
-  procedure copiarchivocompleto(const de, a: string);
+  procedure CopyFullFile(const de, a: string);
 
   var
     SourceFile, DestFile, FileHashes: TFileStream;
@@ -59,11 +59,12 @@ type
     MD5Context: TMD5Context;
     HashMD5: TMDDigest;
   begin
-    SetLength(Buffer, chunksize);
+    SetLength(Buffer, ChunkSize);
     try
       SourceFile := TFileStream.Create(de, fmShareDenyNone);
       DestFile := TFileStream.Create(a, fmCreate);
-      FileHashes := TFileStream.Create(de + '.hash', fmCreate);
+      FileHashes := TFileStream.Create(
+        ExtractFilePath(ParamStr(0)) + MD5Print(MD5String(de)), fmCreate);
     finally
     end;
     SourceFile.Position := 0;
@@ -78,8 +79,8 @@ type
     while SourceFile.Size > TotalBytesCopied do
       // While the amount of data read is less than or equal to the size of the stream do
     begin
-      BytesCopied := SourceFile.Read(Buffer[0], chunksize);
-      // Read in chunksize of data
+      BytesCopied := SourceFile.Read(Buffer[0], ChunkSize);
+      // Read in ChunkSize of data
       Inc(TotalBytesCopied, BytesCopied);
       BlockHash := MD4Print(MD4Buffer(Buffer[0], BytesCopied));
       if CalculateMD5 then
@@ -134,7 +135,7 @@ type
 
   //------------------------------
 
-  procedure copiarchivoconhash(const de, a: string);
+  procedure CopyFileWithHash(const de, a: string);
 
   var
 
@@ -151,9 +152,9 @@ type
     HashMD5: TMDDigest;
 
   begin
-
     { TODO : Comprobar existencia archivo hashes, y si no llamar a copiararchivocompleto }
-    FileHashes := TFileStream.Create(de + '.hash', fmOpenReadWrite);
+    FileHashes := TFileStream.Create(
+      ExtractFilePath(ParamStr(0)) + MD5Print(MD5String(de)), fmOpenReadWrite);
     FileHashes.Position := 0;
     TotalBytesRead := 0;
     writeln('Leyendo archivo con los hashes:', de + '.hash', ' - ',
@@ -172,12 +173,12 @@ type
         Inc(k);
       end;
     end;
-    SetLength(Buffer, chunksize);
+    SetLength(Buffer, ChunkSize);
     if CalculateMD5 then
       MD5Init(MD5Context);
     // Recordar que el 1er elemento del array es el 0
     writeln('Comenzando a procesar el archivo original');
-    FileStream := TFileStream.Create(de, fmOpenRead);
+    FileStream := TFileStream.Create(de, fmOpenRead or fmShareDenyNone);
     { TODO : IMPORTANTE COMPROBAR ESTADO APERTURA}
     FileStream.Position := 0;
     TotalBytesRead := 0;
@@ -189,8 +190,8 @@ type
     //Añadir no abrir hasta que haya que grabar
     while FileStream.Size > TotalBytesRead do
     begin
-      BytesRead := FileStream.Read(Buffer[0], chunksize);
-      // Read in lenght "chunksize" of data
+      BytesRead := FileStream.Read(Buffer[0], ChunkSize);
+      // Read in lenght "ChunkSize" of data
       Inc(TotalBytesRead, BytesRead);
       BlockHash := MD4Print(MD4Buffer(Buffer[0], BytesRead));
       if CalculateMD5 then
@@ -199,7 +200,7 @@ type
       begin
         Write(StringOfChar(#8, 80));
         Write('-----------Bloque distinto:', i);
-        if FileStream.Position < chunksize then
+        if FileStream.Position < ChunkSize then
           DestFile.Position := 0
         else
           DestFile.Position := (FileStream.Position - BytesRead);
@@ -243,10 +244,9 @@ type
     //writeln('Velocidad media:', round(TotalBytesCopied / 1024) /
     //(MilliSecondsBetween(now, totaltime) / 1000): 4: 1, ' MB/s');
     DestFile.Size := FileStream.Size;
-    { TODO: Comprobar Cambiar tamaño archivo hashes }
     FileStream.Free;
     DestFile.Free;
-    FileHashes.Size:=FileHashes.Position;
+    FileHashes.Size := FileHashes.Position;
     FileHashes.Free;
     SetLength(Buffer, 0);
     SetLength(HashArray, 0);
@@ -261,43 +261,55 @@ type
   //------------------------------
 
 
-  procedure ScanFolder(const Path: string);
+  procedure ScanFolder(Path, DestPath: string);
 
   var
-    sPath: string;
-    rec: TSearchRec;
+    SourcePath, DestPath2: string;
+    SearchResult: TSearchRec;
   begin
-    sPath := IncludeTrailingPathDelimiter(Path);
+    SourcePath := IncludeTrailingPathDelimiter(Path);
 
-    if FindFirst(sPath + AllFilesMask, faAnyFile or faSymLink, rec) = 0 then
+    if FindFirst(SourcePath + AllFilesMask, faAnyFile or faSymLink,
+      SearchResult) = 0 then
     begin
       repeat
-
-        // writeln(sPath+rec.Name);
-        if (rec.Attr and faDirectory) <> 0 then
+        writeln('Procesando --- SearchResult.Name : ', SourcePath + SearchResult.Name);
+        // writeln(SourcePath+SearchResult.Name);
+        if (SearchResult.Attr and faDirectory) <> 0 then
         begin
           // item is a directory
 
-          if (rec.Name <> '.') and (rec.Name <> '..') then
+          if (SearchResult.Name <> '.') and (SearchResult.Name <> '..') then
           begin
-            if ((rec.Attr and faSymLink) <> faSymLink) then
-              //     begin
-              ScanFolder(sPath + rec.Name)
-            //writeln('Directorio:',sPath+rec.Name) ;
-            //      end
+            if ((SearchResult.Attr and faSymLink) <> faSymLink) then
+            begin
+              DestPath2 := DestPath + SearchResult.Name + PathDelim;
+              //writeln('DestPath: ', DestPath, 'DestPath2: ', DestPath2);
+              ForceDirectoriesUTF8(DestPath2);
+              ScanFolder(SourcePath + SearchResult.Name, DestPath2);
+
+              //writeln('Directorio:',SourcePath+SearchResult.Name) ;
+
+            end
             else;
-            //writeln('Symlink:',rec.Name);
+            //writeln('Symlink:',SearchResult.Name);
           end;
         end
         else
         begin
           // item is a file
-          //writeln('Archivo:',sPath+rec.Name);
-          if ((rec.Attr and faSymLink) <> faSymLink) then
-            writeln(sPath + rec.Name);
+          writeln('Origen:', SourcePath + SearchResult.Name);
+          writeln('Destino:', DestPath + SearchResult.Name);
+          if ((SearchResult.Attr and faSymLink) <> faSymLink) then
+            if FileExists(DestPath + SearchResult.Name) then
+              CopyFileWithHash(SourcePath + SearchResult.Name, DestPath + SearchResult.Name)
+            else
+              CopyFullFile(SourcePath + SearchResult.Name, DestPath + SearchResult.Name);
+          //writeln(SourcePath + SearchResult.Name);
+
         end;
-      until FindNext(rec) <> 0;
-      FindClose(rec);
+      until FindNext(SearchResult) <> 0;
+      FindClose(SearchResult);
     end;
   end;
 
@@ -312,7 +324,6 @@ type
 
   var
     ErrorMsg: string;
-    Origen, Destino: string;
     i: integer;
     SourceDir, DestDir: string;
     SourceFilename, DestFilename: string;
@@ -343,8 +354,8 @@ type
 
     if HasOption('c', 'chunksize') then
     begin
-      chunksize := StrToInt(GetOptionValue('c', 'chunksize'));
-      if (chunksize < 32) or (chunksize > 1048576) then
+      ChunkSize := StrToInt(GetOptionValue('c', 'chunksize'));
+      if (ChunkSize < 32) or (ChunkSize > 1048576) then
       begin
         writeln('Invalid chunk size');
         WriteHelp;
@@ -387,8 +398,7 @@ type
       else
       begin
         writeln('Bien, dos directorios');
-        ScanFolder(Origen);
-        //Enviar destino también
+        ScanFolder(Origen, Destino);
         Terminate;
         Exit;
       end;
@@ -401,18 +411,18 @@ type
     if FileExists(Destino) then //Comprobar si el tamaño es el mismo ¿y la fecha?
     begin
       writeln('Destino existe, procesamos archivo de hashes');
-      writeln('Tamaño y fecha origen:',fileutil.Filesize(Origen),'-',datetimetostr(filedatetodatetime(fileage(Origen))));
-      writeln('Tamaño y fecha destino:',fileutil.Filesize(Destino),'-',datetimetostr(filedatetodatetime(fileage(Destino))));
-      copiarchivoconhash(Origen, Destino);
+      writeln('Tamaño y fecha origen:', fileutil.Filesize(Origen), '-',
+        datetimetostr(filedatetodatetime(fileage(Origen))));
+      writeln('Tamaño y fecha destino:', fileutil.Filesize(Destino),
+        '-', datetimetostr(filedatetodatetime(fileage(Destino))));
+      CopyFileWithHash(Origen, Destino);
     end
     else
     begin
       writeln('Destino no existe, lo copiamos');
-      copiarchivocompleto(Origen, Destino);
+      CopyFullFile(Origen, Destino);
     end;
-    writeln('fin');
     Terminate;
-    // stop program loop
   end;
 
   constructor dcopy.Create(TheOwner: TComponent);
