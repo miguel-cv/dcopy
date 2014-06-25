@@ -17,6 +17,7 @@ var
   ChunkSize: integer = 65536;    { We split the file in chunksize bytes }
   MinFileSize: integer = 65536;  { Minimum size to skip hashing }
   CalculateMD5: boolean = False; { Set default : don't calculate md5 hash of file }
+  MIR : Boolean = False;
   Origen, Destino: string;
 
 type
@@ -302,9 +303,11 @@ type
             begin
               DestPath2 := DestPath + SearchResult.Name + PathDelim;
               //writeln('DestPath: ', DestPath, 'DestPath2: ', DestPath2);
+
+              if MIR then begin
               ForceDirectoriesUTF8(DestPath2);
               ScanFolder(SourcePath + SearchResult.Name, DestPath2);
-
+              end
               //writeln('Directorio:',SourcePath+SearchResult.Name) ;
 
             end
@@ -317,6 +320,9 @@ type
           // item is a file
           //writeln('Origen:', SourcePath + SearchResult.Name);
           //writeln('Destino:', DestPath + SearchResult.Name);
+
+          { TODO : Opción para forzar la copia aunque tamaño/fecha sean iguales }
+
           if ((SearchResult.Attr and faSymLink) <> faSymLink) then
             if FileExists(DestPath + SearchResult.Name) then
               begin
@@ -352,7 +358,7 @@ type
 
   begin
     // quick check parameters
-    ErrorMsg := CheckOptions('hc:5', 'help chunksize: md5');
+    ErrorMsg := CheckOptions('hc:5r', 'help chunksize: md5 mir');
     if ErrorMsg <> '' then
     begin
       writeln('Unknown option');
@@ -372,6 +378,11 @@ type
     if HasOption('5', 'md5') then
     begin
       CalculateMD5 := True;
+    end;
+
+    if HasOption('r', 'mir') then
+    begin
+      MIR := True;
     end;
 
     if HasOption('c', 'chunksize') then
