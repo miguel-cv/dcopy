@@ -46,6 +46,23 @@ type
 
   //------------------------------
 
+
+    function CompareFileSizeDate(const de,a: string):Boolean;
+
+    begin
+     CompareFileSizeDate:=False;
+     if (fileutil.Filesize(de)) = (fileutil.Filesize(a))
+     then if (fileage(de)) =  (fileage(a) )
+     then CompareFileSizeDate:=True;
+    end;
+
+   //------------------------------
+
+
+
+
+  //------------------------------
+
   procedure CopyFullFile(const de, a: string);
 
   var
@@ -298,11 +315,16 @@ type
         else
         begin
           // item is a file
-          writeln('Origen:', SourcePath + SearchResult.Name);
-          writeln('Destino:', DestPath + SearchResult.Name);
+          //writeln('Origen:', SourcePath + SearchResult.Name);
+          //writeln('Destino:', DestPath + SearchResult.Name);
           if ((SearchResult.Attr and faSymLink) <> faSymLink) then
             if FileExists(DestPath + SearchResult.Name) then
-              CopyFileWithHash(SourcePath + SearchResult.Name, DestPath + SearchResult.Name)
+              begin
+                if CompareFileSizeDate(SourcePath + SearchResult.Name, DestPath + SearchResult.Name)
+                then writeln('Archivo sin modificar')
+                else CopyFileWithHash(SourcePath + SearchResult.Name, DestPath + SearchResult.Name)
+
+              end
             else
               CopyFullFile(SourcePath + SearchResult.Name, DestPath + SearchResult.Name);
           //writeln(SourcePath + SearchResult.Name);
