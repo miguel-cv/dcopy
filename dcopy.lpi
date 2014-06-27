@@ -51,15 +51,6 @@
       <IncludeFiles Value="$(ProjOutDir)"/>
       <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
-    <CodeGeneration>
-      <SmartLinkUnit Value="True"/>
-      <Optimizations>
-        <OptimizationLevel Value="3"/>
-      </Optimizations>
-    </CodeGeneration>
-    <Linking>
-      <LinkSmart Value="True"/>
-    </Linking>
     <Other>
       <CompilerMessages>
         <MsgFileName Value=""/>

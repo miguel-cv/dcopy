@@ -14,10 +14,13 @@ uses {$IFDEF UNIX} {$IFDEF UseCThreads}
 
 var
 
-  ChunkSize: integer = 131072;    { We split the file in chunksize bytes }
+  ChunkSize: integer = 65536;    { We split the file in chunksize bytes }
   CalculateMD5: boolean = False; { Set default : don't calculate md5 hash of file }
-  MIR : Boolean = False;
-  Origen, Destino: string;
+  MIR: boolean = False;          { Recurse directories option : default false }
+  Origen, Destino: string;       { Source and destination files }
+  HashDir: string;               { Directory with hash files }
+  TotalCopyTime : Tdatetime;     { Total copy time }
+  TotalKBCopied : int64 ;        { Total KB Copied }
 
 type
 
@@ -47,16 +50,16 @@ type
   //------------------------------
 
 
-    function CompareFileSizeDate(const de,a: string):Boolean;
+  function CompareFileSizeDate(const de, a: string): boolean;
 
-    begin
-     CompareFileSizeDate:=False;
-     if (fileutil.Filesize(de)) = (fileutil.Filesize(a))
-     then if (fileage(de)) =  (fileage(a) )
-     then CompareFileSizeDate:=True;
-    end;
+  begin
+    CompareFileSizeDate := False;
+    if (fileutil.Filesize(de)) = (fileutil.Filesize(a)) then
+      if (fileage(de)) = (fileage(a)) then
+        CompareFileSizeDate := True;
+  end;
 
-   //------------------------------
+  //------------------------------
 
 
 
@@ -66,7 +69,7 @@ type
   procedure CopyFullFile(const de, a: string);
 
   var
-    SourceFile, DestFile, FileHashes: TFileStream;
+    SourceFile, DestFile: TFileStream;
     BytesCopied, TotalBytesCopied, medidatiempobytescopiados: int64;
     mb: double;
     Buffer: array of ansichar;
@@ -75,36 +78,38 @@ type
     k: int64;
     MD5Context: TMD5Context;
     HashMD5: TMDDigest;
+    HashTStringList: TStringList;
   begin
     SetLength(Buffer, ChunkSize);
     try
       SourceFile := TFileStream.Create(de, fmShareDenyNone);
       DestFile := TFileStream.Create(a, fmCreate);
-      FileHashes := TFileStream.Create(
-        ExtractFilePath(ParamStr(0)) + MD5Print(MD5String(de)), fmCreate);
     finally
     end;
     SourceFile.Position := 0;
     DestFile.Position := 0;
     TotalBytesCopied := 0;
     k := 0;
+    HashTStringList := TStringList.Create;
     if CalculateMD5 then
       MD5Init(MD5Context);
     medidatiempobytescopiados := 0;
     timeblockstart := now;
     totaltime := now;
+
     while SourceFile.Size > TotalBytesCopied do
       // While the amount of data read is less than or equal to the size of the stream do
     begin
+
       BytesCopied := SourceFile.Read(Buffer[0], ChunkSize);
       // Read in ChunkSize of data
       Inc(TotalBytesCopied, BytesCopied);
       BlockHash := MD4Print(MD4Buffer(Buffer[0], BytesCopied));
+      HashTStringList.Add(BlockHash);
       if CalculateMD5 then
         MD5Update(MD5Context, Buffer[0], BytesCopied);
       { TODO : mirar con CRC uses crc ; ejemplo en https://github.com/graemeg/freepascal/blob/master/packages/hash/examples/crctest.pas }
       DestFile.Write(Buffer[0], BytesCopied);
-      FileHashes.Write(BlockHash[1], 32);
       Inc(medidatiempobytescopiados, BytesCopied);
       Inc(k);
       { TODO : Cambiar esto por un tiempo , con millisecondsbetween... }
@@ -126,6 +131,9 @@ type
       end;        }
       Sleep(0);
     end;
+
+    HashTStringList.SaveToFile((ExtractFilePath(ParamStr(0))) + MD5Print(MD5String(de)));
+    HashTStringList.Free;
     writeln;
     writeln('Tiempo total:', MilliSecondsBetween(now, totaltime) / 1000: 4: 1);
     writeln('Terminamos, total copiado:', round(TotalBytesCopied / 1024), ' KB');
@@ -141,7 +149,6 @@ type
     SetLength(Buffer, 0);
     SourceFile.Free;
     DestFile.Free;
-    FileHashes.Free;
     FileSetDateUTF8(a, fileage(de));
   end;
 
@@ -167,29 +174,16 @@ type
     mb: double;
     MD5Context: TMD5Context;
     HashMD5: TMDDigest;
+    HashTStringList: TStringList;
 
   begin
     { TODO : Comprobar existencia archivo hashes, y si no llamar a copiararchivocompleto }
-    FileHashes := TFileStream.Create(
-      ExtractFilePath(ParamStr(0)) + MD5Print(MD5String(de)), fmOpenReadWrite);
-    FileHashes.Position := 0;
+
     TotalBytesRead := 0;
-    writeln('Leyendo archivo con los hashes:', de + '.hash', ' - ',
-      (FileHashes.Size / 1024): 0: 1, ' KB');
-    i := round(FileHashes.Size / 32);
-    SetLength(HashArray, i + 1);
-    //1 más por si acaso
-    k := 0;
-    while FileHashes.Size > TotalBytesRead do
-    begin
-      BytesRead := FileHashes.Read(TempHashArray, 65536);
-      Inc(TotalBytesRead, BytesRead);
-      for j := 0 to round(BytesRead / 32) - 1 do
-      begin
-        HashArray[k] := copy(TempHashArray, j * 32 + 1, 32);
-        Inc(k);
-      end;
-    end;
+    writeln('Leyendo archivo con los hashes:');
+    HashTStringList := TStringList.Create;
+    HashTStringList.LoadFromFile((ExtractFilePath(ParamStr(0))) +
+      MD5Print(MD5String(de)));
     SetLength(Buffer, ChunkSize);
     if CalculateMD5 then
       MD5Init(MD5Context);
@@ -207,13 +201,15 @@ type
     //Añadir no abrir hasta que haya que grabar
     while FileStream.Size > TotalBytesRead do
     begin
+      if (i >= HashTStringList.Count-1) then
+          HashTStringList.Add('');
       BytesRead := FileStream.Read(Buffer[0], ChunkSize);
       // Read in lenght "ChunkSize" of data
       Inc(TotalBytesRead, BytesRead);
       BlockHash := MD4Print(MD4Buffer(Buffer[0], BytesRead));
       if CalculateMD5 then
         MD5Update(MD5Context, Buffer[0], BytesRead);
-      if BlockHash <> HashArray[i] then
+      if BlockHash <> HashTStringList[i] then
       begin
         Write(StringOfChar(#8, 80));
         Write('-----------Bloque distinto:', i);
@@ -223,8 +219,10 @@ type
           DestFile.Position := (FileStream.Position - BytesRead);
         DestFile.Write(Buffer[0], BytesRead);
         Inc(TotalBytesCopied, BytesRead);
-        FileHashes.Position := (i * 32);
-        FileHashes.Write(BlockHash[1], 32);
+        if (i >= HashTStringList.Count) then
+          HashTStringList.Add(BlockHash)
+        else
+          HashTStringList[i] := BlockHash;
         Sleep(0);
       end;
       Inc(i);
@@ -250,6 +248,15 @@ type
 
       Sleep(0);
     end;
+    if ((HashTStringList.Count-1) > i) then
+    begin
+      for k := (HashTStringList.Count - 1) downto i do
+      begin
+        HashTStringList.Delete(k);
+      end;
+    end;
+    HashTStringList.SaveToFile((ExtractFilePath(ParamStr(0))) + MD5Print(MD5String(de)));
+    HashTStringList.Free;
     writeln;
     writeln('Tiempo total:', MilliSecondsBetween(now, totaltime) / 1000: 4: 1);
     writeln('Terminamos, total copiado:', round(TotalBytesCopied / 1024), ' KB');
@@ -263,10 +270,7 @@ type
     DestFile.Size := FileStream.Size;
     FileStream.Free;
     DestFile.Free;
-    FileHashes.Size := FileHashes.Position;
-    FileHashes.Free;
     SetLength(Buffer, 0);
-    SetLength(HashArray, 0);
     FileSetDateUTF8(a, fileage(de));
   end;
 
@@ -303,10 +307,11 @@ type
               DestPath2 := DestPath + SearchResult.Name + PathDelim;
               //writeln('DestPath: ', DestPath, 'DestPath2: ', DestPath2);
 
-              if MIR then begin
-              ForceDirectoriesUTF8(DestPath2);
-              ScanFolder(SourcePath + SearchResult.Name, DestPath2);
-              end
+              if MIR then
+              begin
+                ForceDirectoriesUTF8(DestPath2);
+                ScanFolder(SourcePath + SearchResult.Name, DestPath2);
+              end;
               //writeln('Directorio:',SourcePath+SearchResult.Name) ;
 
             end
@@ -324,12 +329,14 @@ type
 
           if ((SearchResult.Attr and faSymLink) <> faSymLink) then
             if FileExists(DestPath + SearchResult.Name) then
-              begin
-                if CompareFileSizeDate(SourcePath + SearchResult.Name, DestPath + SearchResult.Name)
-                then writeln('Archivo sin modificar')
-                else CopyFileWithHash(SourcePath + SearchResult.Name, DestPath + SearchResult.Name)
+            begin
+              if CompareFileSizeDate(SourcePath + SearchResult.Name,
+                DestPath + SearchResult.Name) then
+                writeln('Archivo sin modificar')
+              else
+                CopyFileWithHash(SourcePath + SearchResult.Name, DestPath + SearchResult.Name);
 
-              end
+            end
             else
               CopyFullFile(SourcePath + SearchResult.Name, DestPath + SearchResult.Name);
           //writeln(SourcePath + SearchResult.Name);
@@ -416,7 +423,7 @@ type
     Origen := ParamStr(paramcount - 1);
     Destino := ParamStr(ParamCount);
     { TODO : Añadir comprobación directorio destino, y abrir destino+nombre original.FileExists }
-    writeln('Prueba comodines, ',ExtractFileName(Origen)+ExtractFileExt(Origen) );
+    writeln('Prueba comodines, ', ExtractFileName(Origen) + ExtractFileExt(Origen));
     if (Origen = Destino) then
     begin
       writeln('You can''t copy a file/directory over itself');
@@ -447,10 +454,10 @@ type
 
     if FileExists(Destino) then //Comprobar si el tamaño es el mismo ¿y la fecha?
     begin
-      if not (CompareFileSizeDate(Origen,Destino) ) then
+      if not (CompareFileSizeDate(Origen, Destino)) then
       begin
-      writeln('Destino existe, procesamos archivo de hashes');
-      CopyFileWithHash(Origen, Destino);
+        writeln('Destino existe, procesamos archivo de hashes');
+        CopyFileWithHash(Origen, Destino);
       end
       else
       begin
@@ -488,6 +495,7 @@ type
     writeln(Exename, ' -5 --md5 Calculate md5 hash');
     writeln(Exename, ' -f --force Force overwrite');
     writeln(Exename, ' -d --delete with --mir delete files not on source ');
+    writeln(Exename, ' -a --hashdir Directory containing hash files ');
   end;
 
 var
