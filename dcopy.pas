@@ -14,7 +14,7 @@ uses {$IFDEF UNIX} {$IFDEF UseCThreads}
 
 var
 
-  ChunkSize: integer = 65536;    { We split the file in chunksize bytes }
+  ChunkSize: integer = 131072;    { We split the file in chunksize bytes }
   CalculateMD5: boolean = False; { Set default : don't calculate md5 hash of file }
   MIR : Boolean = False;
   Origen, Destino: string;
@@ -399,6 +399,10 @@ type
     { add your program here }
     { TODO : Añadir try...finally }
 
+    {$IFDEF UNIX}
+    //Process parameters one on one
+    {$EndIf}
+
     if (ParamStr(paramcount - 1) = '') or (ParamStr(paramcount) = '') then
     begin
       writeln('We need at least source and destination....');
@@ -406,12 +410,13 @@ type
       Terminate;
       exit;
     end;
-
+    { TODO : Si estamos en linux, dejar que la expansión la haga el shell
+      y procesar todos los argumentos. }
     { TODO : Extraer path y nombre por separado}
     Origen := ParamStr(paramcount - 1);
     Destino := ParamStr(ParamCount);
     { TODO : Añadir comprobación directorio destino, y abrir destino+nombre original.FileExists }
-
+    writeln('Prueba comodines, ',ExtractFileName(Origen)+ExtractFileExt(Origen) );
     if (Origen = Destino) then
     begin
       writeln('You can''t copy a file/directory over itself');
@@ -442,12 +447,15 @@ type
 
     if FileExists(Destino) then //Comprobar si el tamaño es el mismo ¿y la fecha?
     begin
+      if not (CompareFileSizeDate(Origen,Destino) ) then
+      begin
       writeln('Destino existe, procesamos archivo de hashes');
-      writeln('Tamaño y fecha origen:', fileutil.Filesize(Origen), '-',
-        datetimetostr(filedatetodatetime(fileage(Origen))));
-      writeln('Tamaño y fecha destino:', fileutil.Filesize(Destino),
-        '-', datetimetostr(filedatetodatetime(fileage(Destino))));
       CopyFileWithHash(Origen, Destino);
+      end
+      else
+      begin
+        writeln('Destino existe, y tiene la misma fecha/tamaño');
+      end;
     end
     else
     begin
@@ -472,12 +480,14 @@ type
   begin
     { TODO: Añadir descripción programa y uso }
     writeln('dcopy - write description ');
-    writeln(Exename, ' -h -c -m -n chunksize source destination');
-    writeln(ExeName, ' -h --help Get help');
+    writeln(Exename, ' -h  -m -n -c chunksize source destination');
+    writeln(ExeName, ' -h --help Get this text');
     writeln(ExeName, ' -c --chunksize Set chunk size (in bytes, between 32 and 1048576');
     writeln(Exename, ' -r --mir Clone (as robocopy) a directory structure');
-    writeln(Exename, ' -n --mon monitor folder for changes');
+    writeln(Exename, ' -n --mon monitor folder for changes (Not yet)');
     writeln(Exename, ' -5 --md5 Calculate md5 hash');
+    writeln(Exename, ' -f --force Force overwrite');
+    writeln(Exename, ' -d --delete with --mir delete files not on source ');
   end;
 
 var
