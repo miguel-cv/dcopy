@@ -39,3 +39,4 @@ Thumbs.db
 lib/
 .gitignore
 ./dcopy
+dcopy
