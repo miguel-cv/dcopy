@@ -20,11 +20,11 @@ var
   MIR: boolean = False;          { Recurse directories option : default false }
   Origen, Destino: string;       { Source and destination files }
   HashDir: string;               { Directory with hash files }
-  TotalCopyTime: Tdatetime;      { Total copy time }
-  TotalKBCopied: int64 = 0;      { Total KB Copied }
+  TotalCopyTime: Tdatetime;
+  TotalKBCopied: int64 = 0;
   TotalFilesCopied: longint = 0;
   FailedFilesCopied: longint = 0 ;
-
+  FailedFilesList: TStringListUTF8; {List of failed files}
 type
 
   { dcopy }
@@ -133,8 +133,7 @@ type
       HashTStringList.SaveToFile((ExtractFilePath(ParamStr(0))) +
         MD5Print(MD5String(de)));
       HashTStringList.Free;
-      writeln;
-      write('Total time:', MilliSecondsBetween(now, totaltime) / 1000: 4: 1);
+      write(' *** Total time:', MilliSecondsBetween(now, totaltime) / 1000: 4: 1);
       writeln(' Copied:', round(TotalBytesCopied / 1024), ' KB');
       inc(TotalKBCopied,round(TotalBytesCopied / 1024));
       if CalculateMD5 then
@@ -179,7 +178,6 @@ type
 
   begin
     { TODO : Comprobar existencia archivo hashes, y si no llamar a copiararchivocompleto }
-
     TotalBytesRead := 0;
     writeln('Leyendo archivo con los hashes:');
     try
@@ -267,9 +265,8 @@ type
       end;
       HashTStringList.SaveToFile((ExtractFilePath(ParamStr(0))) + MD5Print(MD5String(de)));
       HashTStringList.Free;
-      writeln;
-      writeln('Tiempo total:', MilliSecondsBetween(now, totaltime) / 1000: 4: 1);
-      writeln('Terminamos, total copiado:', round(TotalBytesCopied / 1024), ' KB');
+      write(' ***Total Time:', MilliSecondsBetween(now, totaltime) / 1000: 4: 1);
+      writeln('Copied:', round(TotalBytesCopied / 1024), ' KB');
       if CalculateMD5 then
       begin
         MD5Final(MD5Context, HashMD5);
@@ -337,7 +334,7 @@ type
           // item is a file
           //writeln('Origen:', SourcePath + SearchResult.Name);
           //writeln('Destino:', DestPath + SearchResult.Name);
-          write('Processing --- ', SourcePath + SearchResult.Name);
+          write(SourcePath + SearchResult.Name);
           { TODO : Opción para forzar la copia aunque tamaño/fecha sean iguales }
           try
             if ((SearchResult.Attr and faSymLink) <> faSymLink) then
@@ -345,7 +342,7 @@ type
               begin
                 if CompareFileSizeDate(SourcePath + SearchResult.Name,
                   DestPath + SearchResult.Name) then
-                  writeln(' - same date/size')
+                  writeln(' *** same date/size')
                 else
                   begin
                   CopyFileWithHash(SourcePath + SearchResult.Name,
@@ -360,8 +357,9 @@ type
                 end;
             //writeln(SourcePath + SearchResult.Name);
           except
-            writeln('**** Error processing file:', SourcePath + SearchResult.Name);
+            writeln('**** Error processing file:', SourcePath + SearchResult.Name,' ****');
             inc (FailedFilesCopied);
+            FailedFilesList.Add(SourcePath + SearchResult.Name);
           end;
 
         end;
@@ -431,6 +429,8 @@ type
     //Process parameters one on one
     {$EndIf}
 
+    FailedFilesList:=TStringListUTF8.Create;
+
     if (ParamStr(paramcount - 1) = '') or (ParamStr(paramcount) = '') then
     begin
       writeln('We need at least source and destination....');
@@ -441,6 +441,7 @@ type
     { TODO : Si estamos en linux, dejar que la primera expansión la haga el shell
       y procesar todos los argumentos. }
     { TODO : Extraer path y nombre por separado}
+
     Origen := ParamStr(paramcount - 1);
     Destino := ParamStr(ParamCount);
     if DirectoryExists(Origen) then
@@ -470,6 +471,7 @@ type
         writeln('Total files copied:',TotalFilesCopied);
         writeln('Files with errors:',FailedFilesCopied);
         writeln('Total copied:',TotalKBCopied,'KB');
+        if (FailedFilesList.Count>1) then for i:=0 to FailedFilesList.Count-1 do writeln(FailedFilesList[i]);;
         Terminate;
         Exit;
       end;
@@ -484,17 +486,17 @@ type
     begin
       if not (CompareFileSizeDate(Origen, Destino)) then
       begin
-        writeln('Destino existe, procesamos archivo de hashes');
+        writeln('File exist in destination, copying with hash file');
         CopyFileWithHash(Origen, Destino);
       end
       else
       begin
-        writeln('Destino existe, y tiene la misma fecha/tamaño');
+        writeln('File exist in destination, and has same date/size');
       end;
     end
     else
     begin
-      writeln('Destino no existe, lo copiamos');
+      writeln('Copying file to destination');
       CopyFullFile(Origen, Destino);
     end;
     writeln('Total files copied:',TotalFilesCopied);
