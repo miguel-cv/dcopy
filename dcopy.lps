@@ -3,7 +3,7 @@
   <ProjectSession>
     <Version Value="9"/>
     <BuildModes Active="Default"/>
-    <Units Count="7">
+    <Units Count="8">
       <Unit0>
         <Filename Value="dcopy.pas"/>
         <IsPartOfProject Value="True"/>
@@ -11,9 +11,9 @@
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="0"/>
         <WindowIndex Value="0"/>
-        <TopLine Value="129"/>
-        <CursorPos X="19" Y="149"/>
-        <UsageCount Value="98"/>
+        <TopLine Value="436"/>
+        <CursorPos X="72" Y="449"/>
+        <UsageCount Value="103"/>
         <Loaded Value="True"/>
       </Unit0>
       <Unit1>
@@ -60,6 +60,13 @@
         <CursorPos X="10" Y="145"/>
         <UsageCount Value="8"/>
       </Unit6>
+      <Unit7>
+        <Filename Value="/usr/lib/codetyphon/fpcsrc/rtl/objpas/sysutils/finah.inc"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="7"/>
+        <CursorPos X="10" Y="33"/>
+        <UsageCount Value="10"/>
+      </Unit7>
     </Units>
     <General>
       <ActiveWindowIndexAtStart Value="0"/>
@@ -67,123 +74,123 @@
     <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="315" Column="16" TopLine="297"/>
+        <Caret Line="132" Column="108" TopLine="116"/>
       </Position1>
       <Position2>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="61" Column="35" TopLine="32"/>
+        <Caret Line="138" Column="71" TopLine="122"/>
       </Position2>
       <Position3>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="314" Column="23" TopLine="291"/>
+        <Caret Line="70" Column="25" TopLine="67"/>
       </Position3>
       <Position4>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="482" Column="27" TopLine="455"/>
+        <Caret Line="112" Column="46" TopLine="97"/>
       </Position4>
       <Position5>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="21" Column="64" TopLine="1"/>
+        <Caret Line="185" Column="91" TopLine="169"/>
       </Position5>
       <Position6>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="132" Column="108" TopLine="116"/>
+        <Caret Line="244" Column="71" TopLine="217"/>
       </Position6>
       <Position7>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="138" Column="71" TopLine="122"/>
+        <Caret Line="245" Column="68" TopLine="228"/>
       </Position7>
       <Position8>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="70" Column="25" TopLine="67"/>
+        <Caret Line="204" Column="33" TopLine="185"/>
       </Position8>
       <Position9>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="112" Column="46" TopLine="97"/>
+        <Caret Line="18" Column="34" TopLine="1"/>
       </Position9>
       <Position10>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="185" Column="91" TopLine="169"/>
+        <Caret Line="109" Column="33" TopLine="94"/>
       </Position10>
       <Position11>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="244" Column="71" TopLine="217"/>
+        <Caret Line="212" Column="59" TopLine="197"/>
       </Position11>
       <Position12>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="245" Column="68" TopLine="228"/>
+        <Caret Line="215" Column="29" TopLine="200"/>
       </Position12>
       <Position13>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="204" Column="33" TopLine="185"/>
+        <Caret Line="226" Column="51" TopLine="211"/>
       </Position13>
       <Position14>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="18" Column="34" TopLine="1"/>
+        <Caret Line="212" Column="34" TopLine="198"/>
       </Position14>
       <Position15>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="109" Column="33" TopLine="94"/>
+        <Caret Line="223" Column="25" TopLine="212"/>
       </Position15>
       <Position16>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="212" Column="59" TopLine="197"/>
+        <Caret Line="425" Column="110" TopLine="412"/>
       </Position16>
       <Position17>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="215" Column="29" TopLine="200"/>
+        <Caret Line="168" Column="23" TopLine="152"/>
       </Position17>
       <Position18>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="226" Column="51" TopLine="211"/>
+        <Caret Line="167" Column="16" TopLine="159"/>
       </Position18>
       <Position19>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="212" Column="34" TopLine="198"/>
+        <Caret Line="358" Column="16" TopLine="345"/>
       </Position19>
       <Position20>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="223" Column="25" TopLine="212"/>
+        <Caret Line="22" Column="3" TopLine="8"/>
       </Position20>
       <Position21>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="425" Column="110" TopLine="412"/>
+        <Caret Line="167" Column="15" TopLine="153"/>
       </Position21>
       <Position22>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="168" Column="23" TopLine="152"/>
+        <Caret Line="189" Column="15" TopLine="169"/>
       </Position22>
       <Position23>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="167" Column="16" TopLine="159"/>
+        <Caret Line="151" Column="5" TopLine="127"/>
       </Position23>
       <Position24>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="358" Column="16" TopLine="345"/>
+        <Caret Line="198" Column="34" TopLine="179"/>
       </Position24>
       <Position25>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="22" Column="3" TopLine="8"/>
+        <Caret Line="298" Column="50" TopLine="288"/>
       </Position25>
       <Position26>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="167" Column="15" TopLine="153"/>
+        <Caret Line="447" Column="143" TopLine="433"/>
       </Position26>
       <Position27>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="189" Column="15" TopLine="169"/>
+        <Caret Line="343" Column="149" TopLine="330"/>
       </Position27>
       <Position28>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="151" Column="5" TopLine="127"/>
+        <Caret Line="446" Column="62" TopLine="435"/>
       </Position28>
       <Position29>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="168" Column="42" TopLine="178"/>
+        <Caret Line="445" Column="37" TopLine="439"/>
       </Position29>
       <Position30>
         <Filename Value="dcopy.pas"/>
-        <Caret Line="198" Column="34" TopLine="179"/>
+        <Caret Line="469" Column="37" TopLine="447"/>
       </Position30>
     </JumpHistory>
   </ProjectSession>
