@@ -40,3 +40,4 @@ lib/
 .gitignore
 ./dcopy
 dcopy
+Hashdir/

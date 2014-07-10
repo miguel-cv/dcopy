@@ -1,4 +1,4 @@
-                                                             program dcopya;
+program dcopya;
 
 {$mode objfpc}{$H+}
 
@@ -16,18 +16,19 @@ uses {$IFDEF UNIX} {$IFDEF UseCThreads}
 
 var
 
-  ChunkSize: integer = 65536;    { We split the file in chunksize bytes }
+  ChunkSize: integer = 65536;    { We split the file in chunksize bytes, default 65536 }
   CalculateMD5: boolean = False; { Set default : don't calculate md5 hash of file }
   ForceCopy: boolean = False;    { Set default : don't copy files with same size/date }
   MIR: boolean = False;          { Recurse directories option : default false }
-  Source, Destination: string;       { Source and destination files }
+  Source, Destination: string;   { Source and destination files }
   HashDir: string;               { Directory with hash files }
   TotalCopyTime: Tdatetime;
   TotalKBCopied: int64 = 0;
   TotalFilesCopied: longint = 0;
   FailedFilesCopied: longint = 0;
   FailedFilesList: TStringListUTF8; {List of failed files}
-  const Frame: array[0..3] of char =  ('|','/','-','\');
+const
+  Frame: array[0..3] of char = ('|', '/', '-', '\');
 
 type
 
@@ -78,9 +79,8 @@ type
   var
     SourceFile, DestFile: TFileStreamUTF8;
     BytesCopied, TotalBytesCopied, medidatiempobytescopiados: int64;
-    mb: double;
     Buffer: array of ansichar;
-    BlockHash,tempstring: string;
+    BlockHash, tempstring: string;
     timeblockstart, timeblockend, tiempo, totaltime: TDateTime;
     k: int64;
     MD5Context: TMD5Context;
@@ -116,10 +116,10 @@ type
         Inc(medidatiempobytescopiados, BytesCopied);
         Inc(k);
         { TODO : Cambiar esto por un tiempo , con millisecondsbetween... }
-         Write(' '+Frame[k mod 3]+' ');
-         tempstring:=(formatfloat('00,0 Kb',(TotalBytesCopied/1024)));
-         write(tempstring);
-         write(StringOfChar(#8,length(tempstring)+3));
+        Write(' ' + Frame[k mod 3] + ' ');
+        tempstring := (formatfloat('00,0 Kb', (TotalBytesCopied / 1024)));
+        Write(tempstring);
+        Write(StringOfChar(#8, length(tempstring) + 3));
 {if (k = 512) then
       begin
         timeblockend := now;
@@ -139,7 +139,8 @@ type
       Write(' *** Total time:', MilliSecondsBetween(now, totaltime) / 1000: 4: 1);
       writeln(' Copied:', round(TotalBytesCopied / 1024), ' KB');
       Inc(TotalKBCopied, round(TotalBytesCopied / 1024));
-      HashTStringList.SaveToFile( ExtractFilePath(ParamStr(0)) + 'Hashdir' + PathDelim +  MD5Print(MD5String(de)));
+      HashTStringList.SaveToFile(ExtractFilePath(ParamStr(0)) +
+        'Hashdir' + PathDelim + MD5Print(MD5String(de)));
       HashTStringList.Free;
       if CalculateMD5 then
       begin
@@ -183,9 +184,11 @@ type
 
   begin
     TotalBytesRead := 0;
-    writeln('    Reading hashes file:', ExtractFilePath(ParamStr(0)) + 'Hashdir' + PathDelim +  MD5Print(MD5String(de)));
+    writeln('    Reading hashes file:', ExtractFilePath(ParamStr(0)) +
+      'Hashdir' + PathDelim + MD5Print(MD5String(de)));
     try
-      if not FileExistsUTF8(( ExtractFilePath(ParamStr(0))) + 'Hashdir' + PathDelim +  MD5Print(MD5String(de))) then
+      if not FileExistsUTF8((ExtractFilePath(ParamStr(0))) + 'Hashdir' +
+        PathDelim + MD5Print(MD5String(de))) then
       begin
         { TODO : Comprobar fecha/tamaño. Si force copiar completo, si no pasar. }
         writeln('Hashes file doesn''t exists, copying full file');
@@ -193,7 +196,8 @@ type
         exit;
       end;
       HashTStringList := TStringList.Create;
-      HashTStringList.LoadFromFile((ExtractFilePath(ParamStr(0))) + 'Hashdir' + PathDelim +  MD5Print(MD5String(de)));
+      HashTStringList.LoadFromFile((ExtractFilePath(ParamStr(0))) +
+        'Hashdir' + PathDelim + MD5Print(MD5String(de)));
       SetLength(Buffer, ChunkSize);
       if CalculateMD5 then
         MD5Init(MD5Context);
@@ -272,7 +276,8 @@ type
       //writeln('Velocidad media:', round(TotalBytesCopied / 1024) /
       //(MilliSecondsBetween(now, totaltime) / 1000): 4: 1, ' MB/s');
     finally
-      HashTStringList.SaveToFile( (ExtractFilePath(ParamStr(0))) + 'Hashdir' + PathDelim +  MD5Print(MD5String(de)));
+      HashTStringList.SaveToFile((ExtractFilePath(ParamStr(0))) +
+        'Hashdir' + PathDelim + MD5Print(MD5String(de)));
       HashTStringList.Free;
       DestFile.Size := SourceFile.Size;
       SourceFile.Free;
@@ -299,8 +304,8 @@ type
   begin
     SourcePath := IncludeTrailingPathDelimiter(Path);
 
-    if FindFirstUTF8(systoutf8 (SourcePath + AllFilesMask), faAnyFile or faSymLink,
-      SearchResult) = 0 then
+    if FindFirstUTF8(systoutf8(SourcePath + AllFilesMask), faAnyFile or
+      faSymLink, SearchResult) = 0 then
     begin
       repeat
 
@@ -339,7 +344,8 @@ type
             if ((SearchResult.Attr and faSymLink) <> faSymLink) then
               if FileExistsUTF8(sysToUTF8(DestPath + SearchResult.Name)) then
               begin
-                if CompareFileSizeDate(sysToUTF8(SourcePath + SearchResult.Name), sysToUTF8(DestPath + SearchResult.Name)) then
+                if CompareFileSizeDate(sysToUTF8(SourcePath + SearchResult.Name),
+                  sysToUTF8(DestPath + SearchResult.Name)) then
                   writeln(' *** same date/size ***')
                 else
                 begin
@@ -427,6 +433,7 @@ type
     //Process parameters one on one
     {$EndIf}
 
+    ForceDirectoriesUTF8((ExtractFilePath(ParamStr(0))) + 'Hashdir');
     FailedFilesList := TStringListUTF8.Create;
     TotalCopyTime := now;
 
@@ -460,7 +467,8 @@ type
 
     if (ExtractFileName(Source) = '') then
     begin
-      if ((ExtractFileName(Destination) <> '')) and (FileExistsUTF8(sysToUTF8(Destination))) then
+      if ((ExtractFileName(Destination) <> '')) and
+        (FileExistsUTF8(sysToUTF8(Destination))) then
       begin
         writeln('You can''t copy a directory to a file');
         WriteHelp;
@@ -475,12 +483,13 @@ type
         writeln('Total time: ', SecondsBetween(now, TotalCopyTime));
         writeln('Files with errors:', FailedFilesCopied);
         if (FailedFilesList.Count <> 0) then
-           if FailedFilesList.Count=1 then writeln(FailedFilesList[0])
-           else
-           begin
-          for i := 0 to FailedFilesList.Count-1 do
-            writeln(FailedFilesList[i]);
-           end;
+          if FailedFilesList.Count = 1 then
+            writeln(FailedFilesList[0])
+          else
+          begin
+            for i := 0 to FailedFilesList.Count - 1 do
+              writeln(FailedFilesList[i]);
+          end;
         FailedFilesList.Free;
         Terminate;
         Exit;
@@ -512,7 +521,7 @@ type
       CopyFullFile(Source, Destination);
     end;
     writeln('Total files copied:', TotalFilesCopied);
-    writeln('Total copied:', TotalKBCopied, 'KB');
+    writeln('Total copied:', TotalKBCopied, ' KB');
     writeln('Total time: ', SecondsBetween(now, TotalCopyTime));
     writeln('Files with errors:', FailedFilesCopied);
     FailedFilesList.Free;
@@ -549,8 +558,7 @@ var
   Application: dcopy;
 begin
   Application := dcopy.Create(nil);
-  Application.Title:='Aplicacion de copia';
+  Application.Title := 'Aplicacion de copia';
   Application.Run;
   Application.Free;
 end.
-
