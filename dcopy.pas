@@ -550,7 +550,7 @@ type
     //writeln(Exename, ' -n --mon monitor folder for changes (Not yet)');
     writeln(Exename, ' -5 --md5 Calculate md5 hash');
     //writeln(Exename, ' -f --force Force overwrite');
-    //writeln(Exename, ' -d --delete with delete files not on source ');
+    //writeln(Exename, ' -d --delete Delete files not on source ');
     //writeln(Exename, ' -a --hashdir Directory containing hash files ');
   end;
 
