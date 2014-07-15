@@ -1,6 +1,8 @@
--Solve UNICODE/UTF8 problems in windows
+-Solve UNICODE/UTF8 problems in windows-make it without a lot of IFDEF (Almost done)
 -Dont create file with hash (option)
 -Ask/option on file overwrite
 -Rewrite paths check
 -Implement wildcards
+-try/except in principal program
+
 

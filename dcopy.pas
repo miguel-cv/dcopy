@@ -1,7 +1,7 @@
 program dcopya;
 
 {$mode objfpc}{$H+}
-
+{$IFDEF UNIX}{$CODEPAGE UTF8}{$ENDIF}
 uses {$IFDEF UNIX} {$IFDEF UseCThreads}
   cthreads, {$ENDIF} {$ENDIF}
   Classes,
@@ -12,6 +12,7 @@ uses {$IFDEF UNIX} {$IFDEF UseCThreads}
   lazutf8classes,
   lazfileutils,
   LConvEncoding,
+  {$IFDEF WINDOWS} windows, {$ENDIF}
   dateUtils;
 
 var
@@ -19,9 +20,10 @@ var
   ChunkSize: integer = 65536;    { We split the file in chunksize bytes, default 65536 }
   CalculateMD5: boolean = False; { Set default : don't calculate md5 hash of file }
   ForceCopy: boolean = False;    { Set default : don't copy files with same size/date }
-  MIR: boolean = False;          { Recurse directories option : default false }
+  Recursive: boolean = False;    { Recurse directories option : default false }
   Source, Destination: string;   { Source and destination files }
   HashDir: string;               { Directory with hash files }
+  MakeHashFile: boolean = False; { Set default : don't make hash files to send only differences }
   TotalCopyTime: Tdatetime;
   TotalKBCopied: int64 = 0;
   TotalFilesCopied: longint = 0;
@@ -77,7 +79,7 @@ type
   procedure CopyFullFile(const de, a: string);
 
   var
-    SourceFile, DestFile: TFileStreamUTF8;
+    SourceFile, DestFile: TFileStream;
     BytesCopied, TotalBytesCopied, medidatiempobytescopiados: int64;
     Buffer: array of ansichar;
     BlockHash, tempstring: string;
@@ -89,13 +91,13 @@ type
   begin
     SetLength(Buffer, ChunkSize);
     try
-      SourceFile := TFileStreamUTF8.Create(sysToUTF8(de), fmShareDenyNone);
-      DestFile := TFileStreamUTF8.Create(sysToUTF8(a), fmCreate);
+      SourceFile := TFileStream.Create(de, fmShareDenyNone);
+      DestFile := TFileStream.Create(a, fmCreate);
       SourceFile.Position := 0;
       DestFile.Position := 0;
       TotalBytesCopied := 0;
       k := 0;
-      HashTStringList := TStringList.Create;
+      if MakeHashFile then HashTStringList := TStringList.Create;
       if CalculateMD5 then
         MD5Init(MD5Context);
       medidatiempobytescopiados := 0;
@@ -106,12 +108,15 @@ type
       begin
 
         BytesCopied := SourceFile.Read(Buffer[0], ChunkSize);
-        // Read in ChunkSize of data
-        Inc(TotalBytesCopied, BytesCopied);
-        BlockHash := MD4Print(MD4Buffer(Buffer[0], BytesCopied));
-        HashTStringList.Add(BlockHash);
         if CalculateMD5 then
           MD5Update(MD5Context, Buffer[0], BytesCopied);
+        Inc(TotalBytesCopied, BytesCopied);
+
+        if MakeHashFile then
+        begin
+          BlockHash := MD4Print(MD4Buffer(Buffer[0], BytesCopied));
+          HashTStringList.Add(BlockHash);
+        end;
         DestFile.Write(Buffer[0], BytesCopied);
         Inc(medidatiempobytescopiados, BytesCopied);
         Inc(k);
@@ -139,9 +144,11 @@ type
       Write(' *** Total time:', MilliSecondsBetween(now, totaltime) / 1000: 4: 1);
       writeln(' Copied:', round(TotalBytesCopied / 1024), ' KB');
       Inc(TotalKBCopied, round(TotalBytesCopied / 1024));
-      HashTStringList.SaveToFile(ExtractFilePath(ParamStr(0)) +
-        'Hashdir' + PathDelim + MD5Print(MD5String(de)));
-      HashTStringList.Free;
+      if MakeHashFile then
+      begin
+           HashTStringList.SaveToFile(ExtractFilePath(ParamStr(0)) + 'Hashdir' + PathDelim + MD5Print(MD5String(de)));
+           HashTStringList.Free;
+      end;
       if CalculateMD5 then
       begin
         MD5Final(MD5Context, HashMD5);
@@ -150,7 +157,6 @@ type
       { TODO : Comprobar tiempo 0 }
       //writeln('Velocidad media:', round(TotalBytesCopied / 1024) /
       //  (MilliSecondsBetween(now, totaltime) / 1000): 4: 1, ' MB/s');
-      { TODO : ¿Mover esto más arriba, antes de imprimir los mensajes? }
     finally
       SetLength(Buffer, 0);
       SourceFile.Free;
@@ -183,9 +189,13 @@ type
     HashTStringList: TStringList;
 
   begin
+    if not(MakeHashFile) then
+    begin
+         CopyFullFile(de,a);
+         exit;
+    end;
     TotalBytesRead := 0;
-    writeln('    Reading hashes file:', ExtractFilePath(ParamStr(0)) +
-      'Hashdir' + PathDelim + MD5Print(MD5String(de)));
+    writeln('    Reading hashes file:', ExtractFilePath(ParamStr(0)) +  'Hashdir' + PathDelim + MD5Print(MD5String(de)));
     try
       if not FileExistsUTF8((ExtractFilePath(ParamStr(0))) + 'Hashdir' +
         PathDelim + MD5Print(MD5String(de))) then
@@ -227,7 +237,7 @@ type
           if SourceFile.Position < ChunkSize then
             DestFile.Position := 0
           else
-            DestFile.Position := (SourceFile.Position - BytesRead);
+          DestFile.Position := (SourceFile.Position - BytesRead);
           DestFile.Write(Buffer[0], BytesRead);
           Inc(TotalBytesCopied, BytesRead);
           if (i >= HashTStringList.Count) then
@@ -295,7 +305,7 @@ type
 
   //------------------------------
 
-
+{$IfNDef WINDOWS}
   procedure ScanFolder(Path, DestPath: string);
 
   var
@@ -321,9 +331,9 @@ type
               DestPath2 := DestPath + SearchResult.Name + PathDelim;
               //writeln('DestPath: ', DestPath, 'DestPath2: ', DestPath2);
 
-              if MIR then
+              if Recursive then
               begin
-                ForceDirectoriesUTF8(systoutf8(DestPath2));
+                ForceDirectoriesUTF8(DestPath2);
                 ScanFolder(SourcePath + SearchResult.Name, DestPath2);
               end;
               //writeln('Directorio:',SourcePath+SearchResult.Name) ;
@@ -371,8 +381,77 @@ type
       FindCloseUTF8(SearchResult);
     end;
   end;
+ {$ENDIF}
+ {$IFDEF WINDOWS}
 
+  procedure scanfolder(Source,DestPath: UTF8String);
+  var
+    sFind: UTF8String;
+    hFind: thandle;
+    rFind: WIN32_FIND_DATAW;
+    sFile: UTF8string;
+    DestPath2 : UTF8String;
+  begin
+    //WriteLn('Current Directory: ' + ExpandFileName('.'));
 
+    // search the target directory
+    sFind := IncludeTrailingPathDelimiter(Source);
+    DestPath:=IncludeTrailingPathDelimiter(DestPath);
+    WriteLn('Find: ' + utf8decode(sFind));
+    hFind := Windows.FindFirstFileW(pwidechar(utf8decode(sFind + AllFilesMask)), rFind);
+    //hFind := FindFirstFileW(PWideChar(sFind), rFind);
+    if hFind <> INVALID_HANDLE_VALUE then
+    begin
+      repeat
+        if (rFind.cFileName <> '.') and (rfind.cFileName <> '..') then
+        begin
+          sFile := rFind.cFileName;
+          if (rFind.dwFileAttributes and faDirectory) <> faDirectory then
+          begin
+            Write(sFile);
+            writeln(' - ',fileutil.FileSize((utf8encode(sFind+sFile))), ' - ', FileAge(sFind+sFile));
+            try
+              if FileExistsUTF8(utf8encode(DestPath + sFile)) then
+              begin
+                if CompareFileSizeDate(sFind + sFile,
+                  DestPath + sFile) then
+                  writeln(' *** same date/size ***')
+                else
+                begin
+                  CopyFileWithHash(utf8encode(sFind + Sfile),
+                    utf8encode(DestPath + sFile));
+                end;
+
+              end
+              else
+              begin
+                writeln('Copiar:',sFind+sFile,' a ',DestPath+sFile);
+                CopyFullFile(utf8encode(sFind + sFile), utf8encode(DestPath + PathDelim + sFile));
+              end;
+            //writeln(SourcePath + SearchResult.Name);
+          except
+            writeln(' **** Error processing file ****');
+            Inc(FailedFilesCopied);
+            FailedFilesList.Add(sFind + sFile);
+          end;
+          end
+          else
+          begin
+            //writeln(unicodestring(rFind.cFileName), ' es un directorio');
+             DestPath2 := DestPath + rFind.cFileName;
+             IncludeTrailingPathDelimiter(DestPath2);
+            if Recursive then
+              begin
+                writeln(ForceDirectories(DestPath2));
+            scanfolder(utf8encode(sFind + rFind.cFileName),utf8encode(DestPath2));
+            end;
+          end;
+          end;
+      until not FindNextFileW(hFind, rFind);
+    end;
+    FindClose(hFind);
+  end;
+{$ENDIF}
 
 
   //------------------------------
@@ -387,7 +466,7 @@ type
 
   begin
     // quick check parameters
-    ErrorMsg := CheckOptions('hc:5r', 'help chunksize: md5 recursive');
+    ErrorMsg := CheckOptions('hc:5rm', 'help chunksize: md5 recursive makehash');
     if ErrorMsg <> '' then
     begin
       writeln('Unknown option');
@@ -411,7 +490,12 @@ type
 
     if HasOption('r', 'recursive') then
     begin
-      MIR := True;
+      Recursive := True;
+    end;
+
+    if HasOption('m', 'makehash') then
+    begin
+      MakeHashFile := True;
     end;
 
     if HasOption('c', 'chunksize') then
@@ -552,13 +636,14 @@ type
     //writeln(Exename, ' -f --force Force overwrite');
     //writeln(Exename, ' -d --delete Delete files not on source ');
     //writeln(Exename, ' -a --hashdir Directory containing hash files ');
+    //writeln(Exename, ' -m --makehash save hash files to send only changed content ');
   end;
 
 var
   Application: dcopy;
 begin
   Application := dcopy.Create(nil);
-  Application.Title := 'Aplicacion de copia';
+  Application.Title:='Aplicacion de copia';
   Application.Run;
   Application.Free;
 end.
