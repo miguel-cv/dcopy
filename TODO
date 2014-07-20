@@ -4,5 +4,8 @@
 -Rewrite paths check
 -Implement wildcards
 -try/except in principal program
-
-
+-Set date on directories
+-Set all dates on files (windows)
+-Write files in "bursts" (same-disk mode)
+-copy ACL
+-Make another thread to write if different disk...
