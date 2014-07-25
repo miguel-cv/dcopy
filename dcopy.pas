@@ -30,10 +30,10 @@ var
   TotalFilesCopied: longint = 0;
   FailedFilesCopied: longint = 0;
   FailedFilesList: TStringListUTF8; {List of failed files}
-  NumberOfFiles: int64 = 0;
-  MaxMemToUse: int64 = 32 * 1024 * 1024;
+  MaxMemToUse: int64 = 32 * 1024 * 1024;   {Set default max memory to use:32 M}
   MemUsed: int64 = 0;
   DestFileName: array[0..131072] of string;
+  DestDate: array[0..131072] of longint;
   FilesArray: array of TMemoryStream;
 
 const
@@ -70,6 +70,7 @@ type
   function CompareFileSizeDate(const de, a: string): boolean;
 
   begin
+    //writeln(' ',FilesizeUTF8(de),' ',FilesizeUTF8(a),'-',FileAgeUTF8(a),' ',FileAgeUTF8(de));
     CompareFileSizeDate := False;
     if (FilesizeUTF8(de)) = (FilesizeUTF8(a)) then
       if (fileageUTF8(de)) = (fileageUTF8(a)) then
@@ -88,24 +89,29 @@ type
     m: longint;
   begin
     writeln;
-    for m := NumberOfFiles - 1 downto 0 do
+    writeln('FilesArray Length:',Length(FilesArray));
+    //FilesArray[NumberOfFiles].Free;
+    for m := Length(FilesArray) - 1 downto 0 do
     begin
-      //FilesArray[m].Position:=0;
+      FilesArray[m].Position := 0;
       writeln('Saving to disk:', DestFileName[m], '-', m);
       try
         try
           FilesArray[m].SaveToFile(DestFileName[m]);
-        except
-          writeln('Error grabando:', DestFileName[m]);
-        end
-      finally
+          FileSetDateUTF8(DestFileName[m], DestDate[m]);
+                finally
         FilesArray[m].Free;
         //writeln('Liberado:', m);
       end;
+        except
+            writeln('Error grabando:', DestFileName[m]);
+            Inc(FailedFilesCopied);
+            FailedFilesList.Add(DestFileName[m]);
+          end;
+
     end;
-    NumberOfFiles := 0;
     MemUsed := 0;
-    SetLength(FilesArray,1);
+    SetLength(FilesArray, 0);
   end;
 
 
@@ -123,112 +129,127 @@ type
     SourceFile, DestFile: TStream;
     BytesCopied, TotalBytesCopied: int64;
     Buffer: array of ansichar;
-    BlockHash, tempstring: string;
+    BlockHash: string;
     totaltime: TDateTime;
     k, sizeoffile: int64;
     MD5Context: TMD5Context;
     HashMD5: TMDDigest;
     HashTStringList: TStringList;
+    Flag: boolean = False;
+    Numberoffiles:int64=0;
   begin
-    SetLength(FilesArray,Length(FilesArray)+1);
+    TotalBytesCopied := 0;
+    BytesCopied := 0;
     try
-      SourceFile := TFileStream.Create(de, fmShareDenyNone);
-      if not SameDisk then
-        DestFile := TFileStream.Create(a, fmCreate);
-      SourceFile.Position := 0;
-      //DestFile.Position := 0;
-      TotalBytesCopied := 0;
-      BytesCopied := 0;
-      sizeoffile := SourceFile.Size;
-      if ChunkSize > sizeoffile then
-        SetLength(Buffer, sizeoffile)
-      else
-        SetLength(Buffer, ChunkSize);
-      if SameDisk then
-        if ((MemUsed + sizeoffile) >= MaxMemToUse) then
+      try
+        SourceFile := TFileStream.Create(de, fmShareDenyNone);
+        SourceFile.Position := 0;
+        if not SameDisk then
+          DestFile := TFileStream.Create(a, fmCreate);
+        //DestFile.Position := 0;
+
+        sizeoffile := SourceFile.Size;
+        if (sizeoffile >= MaxMemToUse) and SameDisk then
         begin
-          WriteFilesToDisk;
+          SameDisk := False;
+          Flag := True;
+          DestFile := TFileStream.Create(a, fmCreate);
+          dec(NumberOfFiles);
         end;
-      //begin
-      //WriteFilesToDisk;
-      //if sizeoffile > MaxMemToUse then SameDisk:=False; {CAMBIAR ESTO, VOLVER A PONER EL FLAG}
-      //end
-      if SameDisk then
-      begin
-        FilesArray[NumberOfFiles] := TMemoryStream.Create;
-        FilesArray[NumberOfFiles].Position := 0;
-        FilesArray[NumberOfFiles].copyfrom(SourceFile,sizeoffile);
-        SourceFile.Free;
-        FilesArray[NumberOfFiles].Position:=0;
-        DestFileName[NumberOfFiles] := a;
-        MemUsed += sizeoffile;
+        if ChunkSize > sizeoffile then
+          SetLength(Buffer, sizeoffile)
+        else
+          SetLength(Buffer, ChunkSize);
 
-        writeln(' Number of files:', NumberOfFiles, ' Mem Used:',
-          MemUsed, ' FileSize:', sizeoffile);
-      end;
-      //k := 0;
-      if MakeHashFile then
-        HashTStringList := TStringList.Create;
-      if CalculateMD5 then
-        MD5Init(MD5Context);
-      totaltime := now;
+        if SameDisk then
+        begin
+          writeln(' to memory');
+          //writeln(' Antes de writefilestodisk MemUsed=', MemUsed, ' MaxMemToUse=', MaxMemToUse, ' FileSize:', sizeoffile, ' Length FilesArray:',Length(FilesArray));
+          if ((MemUsed + sizeoffile) >= MaxMemToUse) then
+            WriteFilesToDisk;
+          NumberofFiles:=Length(FilesArray);
+         // writeln('Después de writefilestodisk,numberoffiles=', NumberOfFiles,
+           // ' MemUsed=', MemUsed, ' MaxMemToUse=', MaxMemToUse, ' FileSize:', sizeoffile);
+          SetLength(FilesArray, Numberoffiles + 1);
+          { TODO : IMPORTANTE:Comprobar si el tamaño del archivo es > que la memoria disponible }
+          //WriteFilesToDisk;
+          //if sizeoffile > MaxMemToUse then SameDisk:=False; {CAMBIAR ESTO, VOLVER A PONER EL FLAG}
+          //end
+          FilesArray[Numberoffiles] := TMemoryStream.Create;
+          FilesArray[NumberOfFiles].Position := 0;
+          FilesArray[NumberOfFiles].copyfrom(SourceFile, sizeoffile);
+          FilesArray[NumberOfFiles].Position := 0;
+          DestFileName[NumberOfFiles] := a;
+          DestDate[NumberOfFiles] := FileAgeUTF8(de);
+          MemUsed += sizeoffile;
 
-      while true do
-      begin
-
-        if SameDisk
-        then BytesCopied := FilesArray[NumberOfFiles].Read(Buffer[0], ChunkSize)
-        else BytesCopied := SourceFile.Read(Buffer[0], ChunkSize);
-
-        if BytesCopied < 1 then break;
-        //writeln('BytesCopied:', BytesCopied, ' Total Bytes Copied:',
-        //  TotalBytesCopied, ' Sizeoffile:', sizeoffile);
-        Inc(TotalBytesCopied, BytesCopied);
+       { writeln(' Number of files:', NumberOfFiles, ' Mem Used:',
+          MemUsed, ' FileSize:', sizeoffile); }
+        end;
+        //k := 0;
+        if MakeHashFile then
+          HashTStringList := TStringList.Create;
         if CalculateMD5 then
-          MD5Update(MD5Context, Buffer[0], BytesCopied);
+          MD5Init(MD5Context);
+        totaltime := now;
 
+        while True do
+        begin
+
+          if SameDisk then
+            BytesCopied := FilesArray[NumberOfFiles].Read(Buffer[0], ChunkSize)
+          else
+            BytesCopied := SourceFile.Read(Buffer[0], ChunkSize);
+
+          if BytesCopied < 1 then
+            break;
+          Inc(TotalBytesCopied, BytesCopied);
+          if CalculateMD5 then
+            MD5Update(MD5Context, Buffer[0], BytesCopied);
+
+          if MakeHashFile then
+          begin
+            BlockHash := MD4Print(MD4Buffer(Buffer[0], BytesCopied));
+            HashTStringList.Add(BlockHash);
+          end;
+          if not (samedisk) then
+            DestFile.Write(Buffer[0], BytesCopied);
+        end;
+
+        Write(' *** Total time:', MilliSecondsBetween(now, totaltime));
+        writeln(' Copied:', round(TotalBytesCopied / 1024), ' KB');
+        Inc(TotalKBCopied, round(TotalBytesCopied / 1024));
         if MakeHashFile then
         begin
-          BlockHash := MD4Print(MD4Buffer(Buffer[0], BytesCopied));
-          HashTStringList.Add(BlockHash);
-          writeln(BlockHash);
+          HashTStringList.SaveToFile(ExtractFilePath(ParamStr(0)) +
+            'Hashdir' + PathDelim + MD5Print(MD5String(de)));
+          HashTStringList.Free;
         end;
-        if not (samedisk) then
-          DestFile.Write(Buffer[0], BytesCopied);
-        //Inc(k);
-        //Write(' ' + Frame[k mod 3] + ' ');
-        {tempstring := (formatfloat('00,0 Kb', (TotalBytesCopied / 1024)));
-        Write(tempstring);
-        Write(StringOfChar(#8, length(tempstring) )); }
+        if CalculateMD5 then
+        begin
+          MD5Final(MD5Context, HashMD5);
+          writeln('MD5 Hash: ', MD5Print(HashMD5));
+        end;
+        { TODO : Comprobar tiempo 0 }
+        //writeln('Velocidad media:', round(TotalBytesCopied / 1024) /
+        //  (MilliSecondsBetween(now, totaltime) / 1000): 4: 1, ' MB/s');
+      except
+        writeln(' **** Error processing file ****', de);
+        Inc(FailedFilesCopied);
+        FailedFilesList.Add(de);
       end;
-
-      Write(' *** Total time:', MilliSecondsBetween(now, totaltime) / 1000: 4: 1);
-      writeln(' Copied:', round(TotalBytesCopied / 1024), ' KB');
-      Inc(TotalKBCopied, round(TotalBytesCopied / 1024));
-      if MakeHashFile then
-      begin
-        HashTStringList.SaveToFile(ExtractFilePath(ParamStr(0)) +
-          'Hashdir' + PathDelim + MD5Print(MD5String(de)));
-        HashTStringList.Free;
-      end;
-      if CalculateMD5 then
-      begin
-        MD5Final(MD5Context, HashMD5);
-        writeln('MD5 Hash: ', MD5Print(HashMD5));
-      end;
-      { TODO : Comprobar tiempo 0 }
-      //writeln('Velocidad media:', round(TotalBytesCopied / 1024) /
-      //  (MilliSecondsBetween(now, totaltime) / 1000): 4: 1, ' MB/s');
     finally
+      Inc(NumberOfFiles);
       SetLength(Buffer, 0);
-
       if not (Samedisk) then
         DestFile.Free;
       SourceFile.Free;
-      Inc(NumberOfFiles);
     end;
-    //if not (SameDisk) then FileSetDateUTF8(systoutf8(a), fileageutf8(systoutf8(de)));
 
+    if not (SameDisk) then
+      FileSetDateUTF8(a, fileageutf8(de));
+    if flag then
+      SameDisk := True;
     Inc(TotalFilesCopied);
   end;
 
@@ -245,7 +266,7 @@ type
 
     TotalBytesRead, BytesRead: int64;
     Buffer: array of AnsiChar;
-    SourceFile, DestFile: TFileStreamUTF8;
+    SourceFile, DestFile: TFileStream;
     BlockHash: string;
     i, k, TotalBytesCopied: longint;
     totaltime: TDateTime;
@@ -260,7 +281,7 @@ type
       exit;
     end;
     TotalBytesRead := 0;
-    writeln('    Reading hashes file:', ExtractFilePath(ParamStr(0)) +
+    writeln(' Reading hashes file:', ExtractFilePath(ParamStr(0)) +
       'Hashdir' + PathDelim + MD5Print(MD5String(de)));
     try
       if not FileExistsUTF8((ExtractFilePath(ParamStr(0))) + 'Hashdir' +
@@ -274,18 +295,22 @@ type
       HashTStringList := TStringList.Create;
       HashTStringList.LoadFromFile((ExtractFilePath(ParamStr(0))) +
         'Hashdir' + PathDelim + MD5Print(MD5String(de)));
-      SetLength(Buffer, ChunkSize);
+
       if CalculateMD5 then
         MD5Init(MD5Context);
       // Recordar que el 1er elemento del array es el 0
       writeln('Start processing source file');
-      SourceFile := TFileStreamUTF8.Create(sysToUTF8(de), fmOpenRead or fmShareDenyNone);
+      SourceFile := TFileStream.Create(de, fmOpenRead or fmShareDenyNone);
+      if ChunkSize > SourceFile.size then
+        SetLength(Buffer, SourceFile.Size)
+      else
+        SetLength(Buffer, ChunkSize);
       SourceFile.Position := 0;
       TotalBytesRead := 0;
       TotalBytesCopied := 0;
       i := 0;
       totaltime := now;
-      DestFile := TFileStreamUTF8.Create(sysToUTF8(a), fmOpenReadWrite);
+      DestFile := TFileStream.Create(a, fmOpenReadWrite);
       while SourceFile.Size > TotalBytesRead do
       begin
         if (i >= HashTStringList.Count - 1) then
@@ -313,27 +338,6 @@ type
           //Sleep(0);
         end;
         Inc(i);
-
-{   k:=0;
-      writeln;
-      timeblockstart:=now;
-      medidatiempobytescopiados:=0;
-      inc(medidatiempobytescopiados,BytesRead);
-       inc(k);
-       if (k = 512)   then
-       begin
-            timeblockend := now;
-            mb:=(medidatiempobytescopiados/1024)/1024;
-            tiempo:=(MilliSecondsBetween(timeblockend, timeblockstart));
-            write('MB: ',mb:4:1,' Tiempo: ',tiempo:4:1,' milisegundos',' Velocidad: ', (mb/(tiempo/1000)):3:2,' Total KB: ',(TotalBytesCopied/1024):8:1);
-            //Write(' Total copiado hasta el momento: ',round(TotalBytesCopied/1024/1024),' MB',' Velocidad: ',round((medidatiempobytescopiados/(1024*1024)))/(MilliSecondsBetween(timeblockend, timeblockstart)/1000));
-            write(StringOfChar(#8,80));
-            k:=0 ;
-            timeblockstart := now;
-            medidatiempobytescopiados:=0;
-       end;   }
-
-        Sleep(0);
       end;
       if ((HashTStringList.Count - 1) > i) then
       begin
@@ -361,7 +365,7 @@ type
       SetLength(Buffer, 0);
     end;
     Inc(TotalFilesCopied);
-    FileSetDateUTF8(systoutf8(a), fileageUTF8(systoutf8(de)));
+    FileSetDateUTF8(a, fileageutf8(de));
   end;
 
   //------------------------------
@@ -437,7 +441,7 @@ type
               end;
             //writeln(SourcePath + SearchResult.Name);
           except
-            writeln(' **** Error processing file **** ',SourcePath + SearchResult.Name);
+            writeln(' **** Error processing file **** ', SourcePath + SearchResult.Name);
             Inc(FailedFilesCopied);
             FailedFilesList.Add(SourcePath + SearchResult.Name);
           end;
@@ -458,67 +462,74 @@ type
     rFind: WIN32_FIND_DATAW;
     sFile: UTF8string;
     DestPath2: UTF8String;
+    temp, temp2: UTF8String;
   begin
     //WriteLn('Current Directory: ' + ExpandFileName('.'));
 
     // search the target directory
     sFind := IncludeTrailingPathDelimiter(Source);
     DestPath := IncludeTrailingPathDelimiter(DestPath);
-    WriteLn('Find: ' + utf8decode(sFind));
+    try
+    //WriteLn('Find: ' + utf8decode(sFind));
     hFind := Windows.FindFirstFileW(pwidechar(utf8decode(sFind + AllFilesMask)), rFind);
     //hFind := FindFirstFileW(PWideChar(sFind), rFind);
     if hFind <> INVALID_HANDLE_VALUE then
     begin
+
       repeat
+        try
         if (rFind.cFileName <> '.') and (rfind.cFileName <> '..') then
         begin
           sFile := rFind.cFileName;
           if (rFind.dwFileAttributes and faDirectory) <> faDirectory then
           begin
-            Write(sFile);
-            writeln(' - ', fileutil.FileSize((utf8encode(sFind + sFile))),
-              ' - ', FileAge(sFind + sFile));
-            try
-              if FileExistsUTF8(utf8encode(DestPath + sFile)) then
-              begin
-                if CompareFileSizeDate(sFind + sFile, DestPath +
-                  sFile) then
-                  writeln(' *** same date/size ***')
-                else
-                begin
-                  CopyFileWithHash(utf8encode(sFind + Sfile),
-                    utf8encode(DestPath + sFile));
-                end;
-
-              end
+            //Write(sFile);
+            // writeln(' - ', fileutil.FileSize((utf8encode(sFind + sFile))),
+            //   ' - ', FileAge(sFind + sFile));
+            temp := sFind + Sfile;
+            temp2 := DestPath + sFile;
+            if FileExistsUTF8(utf8encode(DestPath + sFile)) then
+            begin
+              if CompareFileSizeDate(utf8encode(temp), utf8encode(temp2)) then
+                writeln(temp, ' *** same date/size ***')
               else
               begin
-                writeln('Copiar:', sFind + sFile, ' a ', DestPath + sFile);
-                CopyFullFile(utf8encode(sFind + sFile),
-                  utf8encode(DestPath + PathDelim + sFile));
+                Write(temp, ' ');
+                CopyFileWithHash(utf8encode(temp),
+                  utf8encode(temp2));
               end;
-              //writeln(SourcePath + SearchResult.Name);
-            except
-              writeln(' **** Error processing file ****');
-              Inc(FailedFilesCopied);
-              FailedFilesList.Add(sFind + sFile);
+
+            end
+            else
+            begin
+              Write('Copying ', temp);
+              CopyFullFile(utf8encode(temp),
+                utf8encode(temp2));
             end;
+            //writeln(SourcePath + SearchResult.Name);
+
           end
           else
           begin
             //writeln(unicodestring(rFind.cFileName), ' es un directorio');
-            DestPath2 := DestPath + rFind.cFileName;
+            DestPath2 := DestPath + sFile;
             IncludeTrailingPathDelimiter(DestPath2);
             if Recursive then
             begin
-              writeln(ForceDirectories(DestPath2));
-              scanfolder(utf8encode(sFind + rFind.cFileName), utf8encode(DestPath2));
+              ForceDirectories(DestPath2);
+              scanfolder(utf8encode(sFind + sFile), utf8encode(DestPath2));
             end;
           end;
         end;
+        except
+      end;
       until not FindNextFileW(hFind, rFind);
+
     end;
+    finally
     FindClose(hFind);
+  end;
+
   end;
 
 {$ENDIF}
@@ -536,9 +547,9 @@ type
 
   begin
     // quick check parameters
-    SetLength(FilesArray,0);
-    ErrorMsg := CheckOptions('hc:5rms',
-      'help chunksize: md5 recursive makehash same-disk');
+    SetLength(FilesArray, 0);
+    ErrorMsg := CheckOptions('hc:5rmsx',
+      'help chunksize: md5 recursive makehash same-disk max-mem');
     if ErrorMsg <> '' then
     begin
       writeln('Unknown option');
@@ -567,12 +578,26 @@ type
     if HasOption('m', 'makehash') then
       MakeHashFile := True;
 
+    if HasOption('x', 'max-mem') then
+    begin
+      MaxMemToUse := StrToInt(GetOptionValue('x', 'max-mem'));
+      if (MaxMemToUse < 1) or (MaxMemToUse > 4096) then
+      begin
+        writeln('Invalid max-mem value (it has to be from 1-4096)');
+        WriteHelp;
+        Terminate;
+        Exit;
+      end
+      else
+        MaxMemToUse := MaxMemToUse * 1024 * 1024;
+    end;
+
     if HasOption('c', 'chunksize') then
     begin
       ChunkSize := StrToInt(GetOptionValue('c', 'chunksize'));
       if (ChunkSize < 32) or (ChunkSize > 4194304) then
       begin
-        writeln('Invalid chunk size');
+        writeln('Invalid chunk size (it has to be from 32-4194304)');
         WriteHelp;
         Terminate;
         Exit;
@@ -633,7 +658,7 @@ type
       else  // copy from dir to dir
       begin
         ScanFolder(Source, Destination);
-        if NumberOfFiles <> 0 then
+        if (samedisk) and (Length(FilesArray) <> 0) then
           WriteFilesToDisk;
         writeln('Total files copied:', TotalFilesCopied);
         writeln('Total copied:', TotalKBCopied, 'KB');
@@ -648,7 +673,7 @@ type
               writeln(FailedFilesList[i]);
           end;
         FailedFilesList.Free;
-         SetLength(FilesArray,0);
+        SetLength(FilesArray, 0);
         Terminate;
         Exit;
       end;
@@ -683,7 +708,7 @@ type
     writeln('Total time: ', SecondsBetween(now, TotalCopyTime));
     writeln('Files with errors:', FailedFilesCopied);
     FailedFilesList.Free;
-    SetLength(FilesArray,0);
+    SetLength(FilesArray, 0);
     Terminate;
   end;
 
@@ -702,24 +727,25 @@ type
   begin
     { TODO: Añadir descripción programa y uso }
     writeln('dcopy - write description ');
-    writeln(Exename, ' -h -r -5 -c chunksize source destination');
+    writeln(Exename, ' -h -r -5 -c chunksize -m -s -x source destination');
     writeln(ExeName, ' -h --help Get this text');
     writeln(ExeName, ' -c --chunksize Set chunk size (in bytes, between 32 and 1048576)');
     writeln(Exename, ' -r --recursive Recursive copy of files/directories');
-    //writeln(Exename, ' -n --mon monitor folder for changes (Not yet)');
+    //writeln(Exename, ' -n --mon monitor folder for changes ');
     writeln(Exename, ' -5 --md5 Calculate md5 hash');
     //writeln(Exename, ' -f --force Force overwrite');
     //writeln(Exename, ' -d --delete Delete files not on source ');
     //writeln(Exename, ' -a --hashdir Directory containing hash files ');
-    //writeln(Exename, ' -m --makehash save hash files to send only changed content ');
+    writeln(Exename, ' -m --makehash save hash files to send only changed content ');
     writeln(Exename, ' -s --same-disk Copy files to memory first ');
+    writeln(ExeName, ' -x --max-mem Max memory to use for same disk copy (in MB)');
   end;
 
 var
   Application: dcopy;
 begin
   Application := dcopy.Create(nil);
-  Application.Title := 'Aplicación de copia';
+  Application.Title := 'Aplicacion de copia';
   Application.Run;
   Application.Free;
 end.

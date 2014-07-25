@@ -53,7 +53,7 @@
     </SearchPaths>
     <Linking>
       <Debugging>
-        <UseValgrind Value="True"/>
+        <UseHeaptrc Value="True"/>
       </Debugging>
     </Linking>
     <Other>
